@@ -3,6 +3,7 @@
 #define RHASH_SHA3_H
 #include "ustd.h"
 #include <openssl/evp.h>
+#include "ldns/ldns.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -56,5 +57,13 @@ void rhash_keccak_final(sha3_ctx *ctx, unsigned char* result);
 unsigned char *ldns_sha3_256(unsigned char *data, unsigned int data_len, unsigned char *digest);
 unsigned char *ldns_sha3_384(unsigned char *data, unsigned int data_len, unsigned char *digest);
 unsigned char *ldns_sha3_512(unsigned char *data, unsigned int data_len, unsigned char *digest);
+
+unsigned int sha3_digest_len(ldns_algorithm algorithm);
+unsigned char *sha3_digest(unsigned char* data, unsigned int data_len, ldns_algorithm algorithm, unsigned int* digest_len);
+void I2OSP(unsigned char* output, unsigned int X, unsigned int xLen);
+unsigned char* MGF(unsigned char* mgfSeed, unsigned int mgfSeed_len, unsigned int maskLen, ldns_algorithm algorithm);
+unsigned char *rssa_pss_encode(unsigned char* M, unsigned int M_len, unsigned int emBits, unsigned int* emLen, ldns_algorithm algorithm);
+
+
 
 #endif /* RHASH_SHA3_H */

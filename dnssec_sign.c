@@ -901,7 +901,7 @@ ldns_sign_public_rsasha3(ldns_buffer *to_sign, EVP_PKEY *key, ldns_signing_algor
 	return sigdata_rdf;
 }
 #endif
-
+#if 0
 static inline unsigned int
 sha3_digest_len(ldns_algorithm algorithm) {
 	switch (algorithm) {
@@ -991,14 +991,14 @@ MGF(unsigned char* mgfSeed, unsigned int mgfSeed_len, unsigned int maskLen, ldns
 	return result;
 }
 
-unsigned int
-rssa_pss_encode(unsigned char* M, unsigned int M_len, unsigned int emBits)
+unsigned char*
+rssa_pss_encode(unsigned char* M, unsigned int M_len, unsigned int emBits, unsigned int* emLen, ldns_algorithm algorithm)
 {
 	unsigned char* mHash = NULL;
 	unsigned int mHash_len;
 
 	// Hard coded salt for now
-	char* salt;
+	char* salt = NULL;
 	unsigned int salt_len;
 
 	unsigned char* MM = NULL;
@@ -1020,22 +1020,17 @@ rssa_pss_encode(unsigned char* M, unsigned int M_len, unsigned int emBits)
 	unsigned int maskedDB_len;
 
 	unsigned char* EM = NULL;
-
-	unsigned char* sig = NULL;
-	int sig_len;
+	unsigned int EM_len;
 
 	unsigned int i;
-	ldns_rdf* sigdata_rdf = NULL;
 
-	// settings from draft-muks: emLen is keysize (-1); salt_len is digest len
+	// settings from draft-muks: EM_len is keysize (-1); salt_len is digest len
 	// From RFC8017:
 	// Note that the octet length of EM will be one less than k if
 	// modBits - 1 is divisible by 8 and equal to k otherwise.
-	rsa_key = EVP_PKEY_get1_RSA(key);
-	keysize = RSA_size(rsa_key);
-	emLen = keysize;
-	if (keysize % 8 == 0) {
-	    emLen--;
+	EM_len = emBits / 8;
+	if (emBits % 8 > 0) {
+	    EM_len++;
 	}
 	// (set salt len after first digest)
 
@@ -1046,19 +1041,16 @@ rssa_pss_encode(unsigned char* M, unsigned int M_len, unsigned int emBits)
 	// ignore length for now, should be OK
 
 	//2.   Let mHash = Hash(M), an octet string of length hLen.
-	mHash = sha3_digest(ldns_buffer_begin(M),
-	                    ldns_buffer_position(M),
-	                    algorithm,
-	                    &mHash_len);
+	mHash = sha3_digest(M, M_len, algorithm, &mHash_len);
 	// TODO: check NULL
 	salt_len = mHash_len;
 
-	//3.   If emLen < hLen + sLen + 2, output "encoding error" and stop.
-	// do we know intended emLen?
-	if (emLen < mHash_len + salt_len + 2) {
+	//3.   If EM_len < hLen + sLen + 2, output "encoding error" and stop.
+	// do we know intended EM_len?
+	if (EM_len < mHash_len + salt_len + 2) {
 	    // error
 	    fprintf(stderr, "PSS Encoding error\n");
-	    return NULL;
+	    goto cleanup;
 	}
 
 	//4.   Generate a random octet string salt of length sLen; if sLen =
@@ -1081,27 +1073,27 @@ rssa_pss_encode(unsigned char* M, unsigned int M_len, unsigned int emBits)
 	//6.   Let H = Hash(M'), an octet string of length hLen.
 	H = sha3_digest(MM, MM_len, algorithm, &H_len);
 
-	//7.   Generate an octet string PS consisting of emLen - sLen - hLen
+	//7.   Generate an octet string PS consisting of EM_len - sLen - hLen
 	//     - 2 zero octets.  The length of PS may be 0.
-	PS_len = emLen - salt_len - H_len - 2;
+	PS_len = EM_len - salt_len - H_len - 2;
 	printf("[XX] PS size: %d\n", PS_len);
 	PS = (unsigned char*) malloc(PS_len);
 	memset(PS, 0, PS_len);
 
 	//8.   Let DB = PS || 0x01 || salt; DB is an octet string of length
-	//     emLen - hLen - 1.
+	//     EM_len - hLen - 1.
 	DB_len = PS_len + 1 + salt_len;
-	if (DB_len != emLen - mHash_len - 1) {
+	if (DB_len != EM_len - mHash_len - 1) {
 	    fprintf(stderr, "DB len is wrong?\n");
-	    return NULL;
+	    goto cleanup;
 	}
 	DB = (unsigned char*) malloc(DB_len);
 	memcpy(DB, PS, PS_len);
 	memset(DB + PS_len, 0x01, 1);
 	memcpy(DB + 9, salt, salt_len);
 
-	//9.   Let dbMask = MGF(H, emLen - hLen - 1).
-	dbMask_len = emLen - H_len - 1;
+	//9.   Let dbMask = MGF(H, EM_len - hLen - 1).
+	dbMask_len = EM_len - H_len - 1;
 	dbMask = MGF(H, H_len, dbMask_len, algorithm);
 
 	//10.  Let maskedDB = DB \xor dbMask.
@@ -1111,28 +1103,97 @@ rssa_pss_encode(unsigned char* M, unsigned int M_len, unsigned int emBits)
 	    maskedDB[i] = DB[i] ^ dbMask[i];
 	}
 
-	//11.  Set the leftmost 8emLen - emBits bits of the leftmost octet
+	//11.  Set the leftmost 8EM_len - emBits bits of the leftmost octet
 	//     in maskedDB to zero.
-	// we set emBits to 8*emLen so this step should not be necessary
+	printf("[XX] Byte zero: %02x\n", maskedDB[0]);
+	maskedDB[0] = maskedDB[0] << (EM_len*8 - emBits);
+	maskedDB[0] = maskedDB[0] >> (EM_len*8 - emBits);
+	printf("[XX] Byte zero: %02x\n", maskedDB[0]);
 
 	//12.  Let EM = maskedDB || H || 0xbc.
-	printf("[XX] emLen: %u\n", emLen);
-	printf("[XX] emBits: %u\n", emLen);
+	printf("[XX] EM_len: %u\n", EM_len);
+	printf("[XX] emBits: %u\n", emBits);
 	printf("[XX] maskedDBlen: %u\n", maskedDB_len);
 	printf("[XX] H_len: %u\n", H_len);
 	// sanity check
-	if (emLen != maskedDB_len + H_len + 1) {
+	if (EM_len != maskedDB_len + H_len + 1) {
 	    fprintf(stderr, "Error in PSS algorithm; sizes do not match up\n");
-	    return NULL;
+	    goto cleanup;
 	}
-	EM = (unsigned char*) malloc(emLen);
+	EM = (unsigned char*) malloc(EM_len);
 	memcpy(EM, maskedDB, maskedDB_len);
 	memcpy(EM+maskedDB_len, H, H_len);
 	memset(EM+maskedDB_len+H_len, 0xbc, 1);
 
+	if (emLen != NULL) {
+		*emLen = EM_len;
+	}
+
+	cleanup:
+	if (mHash != NULL) { free(mHash); }
+	if (salt != NULL) { free(salt); }
+	if (MM != NULL) { free(MM); }
+	if (H != NULL) { free(H); }
+	if (PS != NULL) { free(PS); }
+	if (DB != NULL) { free(DB); }
+	if (dbMask != NULL) { free(dbMask); }
+	if (maskedDB != NULL) { free(maskedDB); }
+
 	return EM;
 }
+#endif // 0
+ldns_rdf *
+ldns_sign_public_rsasha3(ldns_buffer *M, EVP_PKEY *key, ldns_signing_algorithm algorithm)
+{
+	RSA* rsa_key;
+	unsigned int keysize;
 
+	unsigned int emLen;
+	unsigned char* EM;
+
+	unsigned char* sig = NULL;
+	int sig_len;
+
+	ldns_rdf* sigdata_rdf = NULL;
+
+	rsa_key = EVP_PKEY_get1_RSA(key);
+	keysize = RSA_size(rsa_key);
+
+	EM = rssa_pss_encode(ldns_buffer_begin(M), ldns_buffer_position(M), (keysize*8)-1, &emLen, algorithm);
+
+	// phew. Now sign that.
+	sig = (unsigned char*)malloc(keysize);
+	fflush(stderr);
+	fflush(stdout);
+	fprintf(stderr, "Signing EM of size %u with key of size %u\n", emLen, keysize);
+	fprintf(stderr, "EM at %p, sig at %p\n", EM, sig);
+	fprintf(stderr, "byte 0 is: %02x\n", (uint8_t)EM[0]);
+	fflush(stderr);
+	fflush(stdout);
+	sig_len = RSA_private_encrypt(emLen, EM, sig, rsa_key, RSA_NO_PADDING);
+	if (sig_len != (int)keysize) {
+	    fflush(stderr);
+	    fflush(stdout);
+	    fprintf(stderr, "Error in RSA signing; signature size seems wrong (got %d, expected %u)\n", sig_len, keysize);
+	    fprintf(stderr, "%s\n", ERR_error_string(ERR_get_error(), NULL));
+	    fprintf(stderr, "to repeat; emLen is %u, keysize is %u\n", emLen, RSA_size(rsa_key));
+	    fflush(stderr);
+	    fflush(stdout);
+	    goto cleanup;
+	}
+
+	//13.  Output EM.
+	sigdata_rdf = ldns_rdf_new_frm_data(LDNS_RDF_TYPE_B64, sig_len, sig);
+
+	//cleanup
+	cleanup:
+	if (EM != NULL) { free(EM); }
+	if (sig != NULL) { free(sig); }
+
+	return sigdata_rdf;
+}
+
+#if 0
 ldns_rdf *
 ldns_sign_public_rsasha3(ldns_buffer *M, EVP_PKEY *key, ldns_signing_algorithm algorithm)
 {
@@ -1318,7 +1379,7 @@ ldns_sign_public_rsasha3(ldns_buffer *M, EVP_PKEY *key, ldns_signing_algorithm a
 	// free etc.
 	return sigdata_rdf;
 }
-
+#endif // 0
 /**
  * Pushes all rrs from the rrsets of type A and AAAA on gluelist.
  */

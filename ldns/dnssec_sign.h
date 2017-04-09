@@ -13,7 +13,7 @@ extern "C" {
 
 /** Sign flag that makes DNSKEY type signed by all keys, not only by SEP keys*/
 #define LDNS_SIGN_DNSKEY_WITH_ZSK 1
-#define LDNS_SIGN_WITH_ALL_ALGORITHMS 2 
+#define LDNS_SIGN_WITH_ALL_ALGORITHMS 2
 
 /**
  * Create an empty RRSIG RR (i.e. without the actual signature data)
@@ -81,13 +81,23 @@ ldns_rdf *ldns_sign_public_rsasha1(ldns_buffer *to_sign, RSA *key);
  * \return a ldns_rdf with the signed data
  */
 ldns_rdf *ldns_sign_public_rsamd5(ldns_buffer *to_sign, RSA *key);
+
+/**
+ * Sign a buffer with the RSA key (hash with one of the SHA3 digests)
+ * \param[in] to_sign buffer with the data
+ * \param[in] key the key to use
+ * \return a ldns_rdf with the signed data
+ */
+ldns_rdf *ldns_sign_public_rsasha3_256(ldns_buffer *to_sign, EVP_PKEY *key);
+ldns_rdf *ldns_sign_public_rsasha3(ldns_buffer *to_sign, EVP_PKEY *key, ldns_signing_algorithm algorithm);
+
 #endif /* LDNS_BUILD_CONFIG_HAVE_SSL */
 
 /**
  * Marks the names in the zone that are occluded. Those names will be skipped
  * when walking the tree with the ldns_dnssec_name_node_next_nonglue()
  * function. But watch out! Names that are partially occluded (like glue with
- * the same name as the delegation) will not be marked and should specifically 
+ * the same name as the delegation) will not be marked and should specifically
  * be taken into account separately.
  *
  * When glue_list is given (not NULL), in the process of marking the names, all
@@ -105,7 +115,7 @@ ldns_dnssec_zone_mark_and_get_glue(
  * Marks the names in the zone that are occluded. Those names will be skipped
  * when walking the tree with the ldns_dnssec_name_node_next_nonglue()
  * function. But watch out! Names that are partially occluded (like glue with
- * the same name as the delegation) will not be marked and should specifically 
+ * the same name as the delegation) will not be marked and should specifically
  * be taken into account separately.
  *
  * \param[in] zone the zone in which to mark the names
@@ -149,7 +159,7 @@ ldns_dnssec_zone_create_nsec3s(ldns_dnssec_zone *zone,
 
 /**
  * remove signatures if callback function tells to
- * 
+ *
  * \param[in] signatures list of signatures to check, and
  *            possibly remove, depending on the value of the
  *            callback
@@ -212,7 +222,7 @@ ldns_status ldns_dnssec_zone_create_rrsigs(ldns_dnssec_zone *zone,
 
 /**
  * signs the given zone with the given keys
- * 
+ *
  * \param[in] zone the zone to sign
  * \param[in] key_list the list of keys to sign the zone with
  * \param[in] new_rrs newly created resource records are added to this list, to free them later
@@ -225,7 +235,7 @@ ldns_status ldns_dnssec_zone_create_rrsigs(ldns_dnssec_zone *zone,
  * LDNS_SIGNATURE_LEAVE_NO_ADD:
  * leave the signature and do not add a new one with the corresponding key
  * LDNS_SIGNATURE_REMOVE_NO_ADD:
- * remove the signature and do not replace 
+ * remove the signature and do not replace
  *
  * \param[in] arg optional argument for the callback function
  * \param[in] flags option flags for signing process. 0 makes DNSKEY
@@ -239,7 +249,7 @@ ldns_status ldns_dnssec_zone_sign_flg(ldns_dnssec_zone *zone,
 					ldns_rr_list *new_rrs,
 					ldns_key_list *key_list,
 					int (*func)(ldns_rr *, void *),
-					void *arg, 
+					void *arg,
 					int flags);
 
 /**
@@ -284,8 +294,8 @@ ldns_status ldns_dnssec_zone_sign_nsec3_flg(ldns_dnssec_zone *zone,
  * \param[in] salt_length the length (in octets) of the NSEC3 salt
  * \param[in] salt the NSEC3 salt data
  * \param[in] signflags option flags for signing process. 0 is the default.
- * \param[out] map a referenced rbtree pointer variable. The newly created 
- *                 rbtree will contain mappings from hashed owner names to the 
+ * \param[out] map a referenced rbtree pointer variable. The newly created
+ *                 rbtree will contain mappings from hashed owner names to the
  *                 unhashed name.
  * \return LDNS_STATUS_OK on success, an error code otherwise
  */
@@ -306,7 +316,7 @@ ldns_status ldns_dnssec_zone_sign_nsec3_flg_mkmap(ldns_dnssec_zone *zone,
 
 /**
  * signs the given zone with the given keys
- * 
+ *
  * \param[in] zone the zone to sign
  * \param[in] key_list the list of keys to sign the zone with
  * \param[in] new_rrs newly created resource records are added to this list, to free them later
@@ -319,7 +329,7 @@ ldns_status ldns_dnssec_zone_sign_nsec3_flg_mkmap(ldns_dnssec_zone *zone,
  * LDNS_SIGNATURE_LEAVE_NO_ADD:
  * leave the signature and do not add a new one with the corresponding key
  * LDNS_SIGNATURE_REMOVE_NO_ADD:
- * remove the signature and do not replace 
+ * remove the signature and do not replace
  *
  * \param[in] arg optional argument for the callback function
  * \return LDNS_STATUS_OK on success, an error code otherwise
@@ -376,7 +386,7 @@ ldns_zone *ldns_zone_sign(const ldns_zone *zone, ldns_key_list *key_list);
  * \return signed zone
  */
 ldns_zone *ldns_zone_sign_nsec3(ldns_zone *zone, ldns_key_list *key_list, uint8_t algorithm, uint8_t flags, uint16_t iterations, uint8_t salt_length, uint8_t *salt);
- 
+
 #ifdef __cplusplus
 }
 #endif

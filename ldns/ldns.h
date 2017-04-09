@@ -63,7 +63,7 @@ response in presentation format.
 \section gettingstarted Getting Started
 
 See the \ref design page for a very high level description of the design
-choices made for ldns. 
+choices made for ldns.
 
 For an overview of the functions and types ldns provides, you can check out
 the \ref ldns ldns header file descriptions.
@@ -123,6 +123,7 @@ Or you can just use the menu above to browse through the API docs.
 #include <ldns/rbtree.h>
 #include <ldns/sha1.h>
 #include <ldns/sha2.h>
+#include <ldns/sha3.h>
 
 #ifdef __cplusplus
 extern "C" {

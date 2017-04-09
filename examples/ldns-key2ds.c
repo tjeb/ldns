@@ -191,7 +191,7 @@ main(int argc, char *argv[])
 			} else {
 				ldns_rr_print(dsfp, ds);
 				fclose(dsfp);
-				fprintf(stdout, "K%s+%03u+%05u\n", owner, alg, (unsigned int) ldns_calc_keytag(k)); 
+				fprintf(stdout, "K%s+%03u+%05u\n", owner, alg, (unsigned int) ldns_calc_keytag(k));
 			}
 		}
 

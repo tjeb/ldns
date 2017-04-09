@@ -164,6 +164,17 @@ main(int argc, char *argv[])
 		}
 		break;
 #endif
+#ifdef USE_SHA3
+	case LDNS_SIGN_RSASHA3_256:
+	case LDNS_SIGN_RSASHA3_384:
+	case LDNS_SIGN_RSASHA3_512:
+		if (bits < 1024|| bits > 4096) {
+			fprintf(stderr, "For RSASHA3, the key size must be between ");
+			fprintf(stderr, " 1024 and 4096 bits. Aborting.\n");
+			exit(1);
+		}
+		break;
+#endif
 #ifdef USE_ECDSA
 	case LDNS_SIGN_ECDSAP256SHA256:
 	case LDNS_SIGN_ECDSAP384SHA384:
@@ -290,6 +301,16 @@ main(int argc, char *argv[])
 	case LDNS_SIGN_RSASHA256:
 	case LDNS_SIGN_RSASHA512:
 		ds = ldns_key_rr2ds(pubkey, LDNS_SHA256);
+		break;
+	case LDNS_SIGN_RSASHA3_256:
+	case LDNS_SIGN_RSASHA3_384:
+	case LDNS_SIGN_RSASHA3_512:
+		printf("[XX] creating sha3 DS\n");
+		ds = ldns_key_rr2ds(pubkey, LDNS_SHA3_256);
+		if (!ds) {
+			fprintf(stderr, "Error creating ds record\n");
+			exit(1);
+		}
 		break;
 	case LDNS_SIGN_ECC_GOST:
 #ifdef USE_GOST

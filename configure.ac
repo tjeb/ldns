@@ -49,7 +49,7 @@ AC_PROG_MAKE_SET
 # Extra (sp)lint flags for NetBSD
 AC_CANONICAL_HOST
 case "$host_os" in
-	netbsd*) LINTFLAGS="'-D__RENAME(x)=' -D_NETINET_IN_H_ $LINTFLAGS" 
+	netbsd*) LINTFLAGS="'-D__RENAME(x)=' -D_NETINET_IN_H_ $LINTFLAGS"
 		 ;;
 	*)       LINTFLAGS="$LINTFLAGS"
 		 ;;
@@ -122,8 +122,8 @@ AC_SEARCH_LIBS([socket], [socket])
 AC_SEARCH_LIBS([inet_pton], [nsl])
 
 
-AC_ARG_WITH(drill, AC_HELP_STRING([--with-drill], 
- [Also build drill.]), 
+AC_ARG_WITH(drill, AC_HELP_STRING([--with-drill],
+ [Also build drill.]),
  [],[with_drill="no"])
 if test x_$with_drill != x_no ; then
 	AC_SUBST(DRILL,[drill])
@@ -135,7 +135,7 @@ if test x_$with_drill != x_no ; then
 		AC_MSG_ERROR([
 A config.h was detected in the drill subdirectory.
 This does not work with the --with-drill option.
-Please remove the config.h from the drill subdirectory 
+Please remove the config.h from the drill subdirectory
 or do not use the --with-drill option.])
 	fi
 else
@@ -147,8 +147,8 @@ else
 fi
 
 
-AC_ARG_WITH(examples, AC_HELP_STRING([--with-examples], 
- [Also build examples.]), 
+AC_ARG_WITH(examples, AC_HELP_STRING([--with-examples],
+ [Also build examples.]),
  [],[with_examples="no"])
 if test x_$with_examples != x_no ; then
 	AC_SUBST(EXAMPLES,[examples])
@@ -160,7 +160,7 @@ if test x_$with_examples != x_no ; then
 		AC_MSG_ERROR([
 A config.h was detected in the examples subdirectory.
 This does not work with the --with-examples option.
-Please remove the config.h from the examples subdirectory 
+Please remove the config.h from the examples subdirectory
 or do not use the --with-examples option.])
 	fi
 else
@@ -191,7 +191,7 @@ AC_ARG_ENABLE(stderr-msgs, AC_HELP_STRING([--enable-stderr-msgs], [Enable printi
 case "$enable_stderr_msgs" in
     no) dnl default
         ;;
-    *)  
+    *)
         AC_DEFINE_UNQUOTED([STDERR_MSGS], [1], [Define this to enable messages to stderr.])
         ;;
 esac
@@ -207,8 +207,8 @@ AX_CONFIG_FEATURE(
 PYTHON_X_CFLAGS=""
 ldns_with_pyldns=no
 ldns_with_pyldnsx=no
-AC_ARG_WITH(pyldns, AC_HELP_STRING([--with-pyldns], 
- [generate python library, or --without-pyldns to disable Python support.]), 
+AC_ARG_WITH(pyldns, AC_HELP_STRING([--with-pyldns],
+ [generate python library, or --without-pyldns to disable Python support.]),
  [],[ withval="no" ])
 ldns_have_python=no
 if test x_$withval != x_no; then
@@ -263,8 +263,8 @@ fi
 AC_SUBST(PYTHON_X_CFLAGS)
 
 # Check for pyldnsx
-AC_ARG_WITH(pyldnsx, AC_HELP_STRING([--without-pyldnsx], 
-  [Do not install the ldnsx python module, or --with-pyldnsx to install it.]), 
+AC_ARG_WITH(pyldnsx, AC_HELP_STRING([--without-pyldnsx],
+  [Do not install the ldnsx python module, or --with-pyldnsx to install it.]),
   [],[ withval="with_pyldns" ])
 if test x_$withval != x_no; then
   if test x_$ldns_with_pyldns != x_no; then
@@ -294,8 +294,8 @@ fi
 
 # check for perl
 ldns_with_p5_dns_ldns=no
-AC_ARG_WITH(p5-dns-ldns, AC_HELP_STRING([--with-p5-dns-ldns], 
- [generate DNS::LDNS perl bindings]), 
+AC_ARG_WITH(p5-dns-ldns, AC_HELP_STRING([--with-p5-dns-ldns],
+ [generate DNS::LDNS perl bindings]),
  [],[ withval="no" ])
 ldns_have_perl=no
 if test x_$withval != x_no; then
@@ -351,6 +351,18 @@ case "$enable_sha2" in
 		AC_MSG_ERROR([No SHA2 functions found in OpenSSL: please upgrade OpenSSL or rerun with --disable-sha2])
 		])
 	AC_DEFINE_UNQUOTED([USE_SHA2], [1], [Define this to enable SHA256 and SHA512 support.])
+        ;;
+esac
+
+AC_ARG_ENABLE(sha3, AC_HELP_STRING([--disable-sha3], [Disable SHA3 RRSIG support]))
+case "$enable_sha3" in
+    no)
+        ;;
+    yes|*)
+        if test "x$HAVE_SSL" != "xyes"; then
+            AC_MSG_ERROR([SHA2 enabled, but no SSL support])
+        fi
+        AC_DEFINE_UNQUOTED([USE_SHA3], [1], [Define this to enable SHA3 support.])
         ;;
 esac
 
@@ -413,7 +425,7 @@ int load_gost_id(void)
 	EVP_PKEY_asn1_get0_info(&gost_id, NULL, NULL, NULL, NULL, meth);
 	return gost_id;
 }
-int main(void) { 
+int main(void) {
 	EVP_MD_CTX* ctx;
 	const EVP_MD* md;
 	unsigned char digest[64]; /* its a 256-bit digest, so uses 32 bytes */
@@ -755,7 +767,7 @@ AC_CHECK_LIB(pcap, pcap_open_offline, [
     ]
 )
 AC_CHECK_HEADERS([netinet/in_systm.h net/if.h netinet/ip.h netinet/udp.h netinet/igmp.h netinet/if_ether.h netinet/ip6.h net/ethernet.h netinet/ip_compat.h],,, [
-AC_INCLUDES_DEFAULT 
+AC_INCLUDES_DEFAULT
 #ifdef HAVE_NETINET_IN_SYSTM_H
 #include <netinet/in_systm.h>
 #endif

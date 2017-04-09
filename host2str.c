@@ -120,7 +120,7 @@ ldns_lookup_table ldns_opcodes[] = {
 };
 
 const ldns_output_format   ldns_output_format_nocomments_record = { 0, NULL };
-const ldns_output_format  *ldns_output_format_nocomments 
+const ldns_output_format  *ldns_output_format_nocomments
 			= &ldns_output_format_nocomments_record;
 const ldns_output_format   ldns_output_format_onlykeyids_record = {
 	LDNS_COMMENT_KEY, NULL
@@ -130,10 +130,10 @@ const ldns_output_format  *ldns_output_format_onlykeyids
 const ldns_output_format  *ldns_output_format_default
 			= &ldns_output_format_onlykeyids_record;
 
-const ldns_output_format   ldns_output_format_bubblebabble_record = { 
+const ldns_output_format   ldns_output_format_bubblebabble_record = {
 	LDNS_COMMENT_KEY | LDNS_COMMENT_BUBBLEBABBLE | LDNS_COMMENT_FLAGS, NULL
 };
-const ldns_output_format  *ldns_output_format_bubblebabble 
+const ldns_output_format  *ldns_output_format_bubblebabble
 			= &ldns_output_format_bubblebabble_record;
 
 static bool
@@ -150,9 +150,9 @@ ldns_output_format_set_type(ldns_output_format* fmt, ldns_rr_type t)
 {
 	ldns_output_format_storage* fmt_st = (ldns_output_format_storage*)fmt;
 	ldns_status s;
-	
+
 	assert(fmt != NULL);
-	
+
 	if (!(fmt_st->flags & LDNS_FMT_RFC3597)) {
 		ldns_output_format_set(fmt, LDNS_FMT_RFC3597);
 	}
@@ -170,7 +170,7 @@ ldns_output_format_clear_type(ldns_output_format* fmt, ldns_rr_type t)
 {
 	ldns_output_format_storage* fmt_st = (ldns_output_format_storage*)fmt;
 	ldns_status s;
-	
+
 	assert(fmt != NULL);
 
 	if (!(fmt_st->flags & LDNS_FMT_RFC3597)) {
@@ -436,7 +436,7 @@ ldns_rdf2buffer_str_aaaa(ldns_buffer *output, const ldns_rdf *rdf)
 	return ldns_buffer_status(output);
 }
 
-static void 
+static void
 ldns_characters2buffer_str(ldns_buffer* output,
 		size_t amount, const uint8_t* characters)
 {
@@ -466,7 +466,7 @@ ldns_rdf2buffer_str_str(ldns_buffer *output, const ldns_rdf *rdf)
                 return LDNS_STATUS_WIRE_RDATA_ERR;
         }
 	ldns_buffer_printf(output, "\"");
-	ldns_characters2buffer_str(output, 
+	ldns_characters2buffer_str(output,
 			ldns_rdf_data(rdf)[0], ldns_rdf_data(rdf) + 1);
 	ldns_buffer_printf(output, "\"");
 	return ldns_buffer_status(output);
@@ -1246,7 +1246,7 @@ ldns_rdf2buffer_str_hip(ldns_buffer *output, const ldns_rdf *rdf)
 	uint8_t hit_size;
 	uint16_t pk_size;
 	int written;
-	
+
 	if (rdf_size < 6) {
 		return LDNS_STATUS_WIRE_RDATA_ERR;
 	}
@@ -1424,7 +1424,7 @@ ldns_b32_ext2dname(const ldns_rdf *rdf)
         /* add one for the end nul for the string */
 	b32 = LDNS_XMALLOC(char, size + 2);
 	if (b32) {
-		if (ldns_b32_ntop_extended_hex(ldns_rdf_data(rdf) + 1, 
+		if (ldns_b32_ntop_extended_hex(ldns_rdf_data(rdf) + 1,
 				ldns_rdf_size(rdf) - 1, b32, size+1) > 0) {
 			b32[size] = '.';
 			b32[size+1] = '\0';
@@ -1464,7 +1464,7 @@ ldns_rr2buffer_str_rfc3597(ldns_buffer *output, const ldns_rr *rr)
 }
 
 ldns_status
-ldns_rr2buffer_str_fmt(ldns_buffer *output, 
+ldns_rr2buffer_str_fmt(ldns_buffer *output,
 		const ldns_output_format *fmt, const ldns_rr *rr)
 {
 	uint16_t i, flags;
@@ -1519,7 +1519,7 @@ ldns_rr2buffer_str_fmt(ldns_buffer *output,
 		if ((fmt_st->flags & LDNS_FMT_ZEROIZE_RRSIGS) &&
 				(ldns_rr_get_type(rr) == LDNS_RR_TYPE_RRSIG) &&
 				((/* inception  */ i == 4 &&
-				  ldns_rdf_get_type(ldns_rr_rdf(rr, 4)) == 
+				  ldns_rdf_get_type(ldns_rr_rdf(rr, 4)) ==
 							LDNS_RDF_TYPE_TIME) ||
 				  (/* expiration */ i == 5 &&
 				   ldns_rdf_get_type(ldns_rr_rdf(rr, 5)) ==
@@ -1689,13 +1689,13 @@ ldns_rr2buffer_str(ldns_buffer *output, const ldns_rr *rr)
 }
 
 ldns_status
-ldns_rr_list2buffer_str_fmt(ldns_buffer *output, 
+ldns_rr_list2buffer_str_fmt(ldns_buffer *output,
 		const ldns_output_format *fmt, const ldns_rr_list *list)
 {
 	uint16_t i;
 
 	for(i = 0; i < ldns_rr_list_rr_count(list); i++) {
-		(void) ldns_rr2buffer_str_fmt(output, fmt, 
+		(void) ldns_rr2buffer_str_fmt(output, fmt,
 				ldns_rr_list_rr(list, i));
 	}
 	return ldns_buffer_status(output);
@@ -1761,7 +1761,7 @@ ldns_pktheader2buffer_str(ldns_buffer *output, const ldns_pkt *pkt)
 }
 
 ldns_status
-ldns_pkt2buffer_str_fmt(ldns_buffer *output, 
+ldns_pkt2buffer_str_fmt(ldns_buffer *output,
 		const ldns_output_format *fmt, const ldns_pkt *pkt)
 {
 	uint16_t i;
@@ -1985,6 +1985,9 @@ ldns_key2buffer_str(ldns_buffer *output, const ldns_key *k)
 			case LDNS_SIGN_RSASHA1_NSEC3:
 			case LDNS_SIGN_RSASHA256:
 			case LDNS_SIGN_RSASHA512:
+			case LDNS_SIGN_RSASHA3_256:
+			case LDNS_SIGN_RSASHA3_384:
+			case LDNS_SIGN_RSASHA3_512:
 			case LDNS_SIGN_RSAMD5:
 				/* copied by looking at dnssec-keygen output */
 				/* header */
@@ -2017,6 +2020,23 @@ ldns_key2buffer_str(ldns_buffer *output, const ldns_key *k)
 					ldns_buffer_printf(output,
 								    "Algorithm: %u (RSASHA512)\n",
 								    LDNS_RSASHA512);
+					break;
+#endif
+#ifdef USE_SHA3
+				case LDNS_SIGN_RSASHA3_256:
+					ldns_buffer_printf(output,
+								    "Algorithm: %u (RSASHA3_256)\n",
+								    LDNS_RSASHA3_256);
+					break;
+				case LDNS_SIGN_RSASHA3_384:
+					ldns_buffer_printf(output,
+								    "Algorithm: %u (RSASHA3_384)\n",
+								    LDNS_RSASHA3_384);
+					break;
+				case LDNS_SIGN_RSASHA3_512:
+					ldns_buffer_printf(output,
+								    "Algorithm: %u (RSASHA3_512)\n",
+								    LDNS_RSASHA3_512);
 					break;
 #endif
 				default:
@@ -2121,7 +2141,7 @@ ldns_key2buffer_str(ldns_buffer *output, const ldns_key *k)
 #if defined(HAVE_SSL) && defined(USE_GOST)
 				ldns_buffer_printf(output, "Private-key-format: v1.2\n");
 				ldns_buffer_printf(output, "Algorithm: %d (ECC-GOST)\n", LDNS_SIGN_ECC_GOST);
-				status = ldns_gost_key2buffer_str(output, 
+				status = ldns_gost_key2buffer_str(output,
 #ifndef S_SPLINT_S
 					k->_key.key
 #else
@@ -2434,7 +2454,7 @@ ldns_rr_print(FILE *output, const ldns_rr *rr)
 }
 
 void
-ldns_pkt_print_fmt(FILE *output, 
+ldns_pkt_print_fmt(FILE *output,
 		const ldns_output_format *fmt, const ldns_pkt *pkt)
 {
 	char *str = ldns_pkt2str_fmt(fmt, pkt);
@@ -2453,7 +2473,7 @@ ldns_pkt_print(FILE *output, const ldns_pkt *pkt)
 }
 
 void
-ldns_rr_list_print_fmt(FILE *output, 
+ldns_rr_list_print_fmt(FILE *output,
 		const ldns_output_format *fmt, const ldns_rr_list *lst)
 {
 	size_t i;
@@ -2469,7 +2489,7 @@ ldns_rr_list_print(FILE *output, const ldns_rr_list *lst)
 }
 
 void
-ldns_resolver_print_fmt(FILE *output, 
+ldns_resolver_print_fmt(FILE *output,
 		const ldns_output_format *fmt, const ldns_resolver *r)
 {
 	uint16_t i;
@@ -2542,7 +2562,7 @@ ldns_resolver_print(FILE *output, const ldns_resolver *r)
 }
 
 void
-ldns_zone_print_fmt(FILE *output, 
+ldns_zone_print_fmt(FILE *output,
 		const ldns_output_format *fmt, const ldns_zone *z)
 {
 	if(ldns_zone_soa(z))

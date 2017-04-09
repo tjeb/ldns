@@ -80,7 +80,7 @@ AC_CHECK_TYPE(ssize_t, int)
 AC_CHECK_HEADERS([sys/types.h getopt.h stdlib.h stdio.h assert.h netinet/in.h ctype.h time.h pcap.h arpa/inet.h sys/time.h sys/socket.h sys/select.h netdb.h],,, [AC_INCLUDES_DEFAULT])
 AC_CHECK_HEADERS([winsock2.h ws2tcpip.h],,, [AC_INCLUDES_DEFAULT])
 AC_CHECK_HEADERS([netinet/in_systm.h net/if.h netinet/ip.h netinet/udp.h netinet/igmp.h netinet/if_ether.h netinet/ip6.h],,, [
-AC_INCLUDES_DEFAULT 
+AC_INCLUDES_DEFAULT
 #ifdef HAVE_NETINET_IN_SYSTM_H
 #include <netinet/in_systm.h>
 #endif
@@ -160,6 +160,15 @@ case "$enable_sha2" in
         AC_DEFINE_UNQUOTED([USE_SHA2], [1], [Define this to enable SHA256 and SHA512 support.])
         ;;
 esac
+AC_ARG_ENABLE(sha3, AC_HELP_STRING([--disable-sha3], [Disable SHA3 RRSIG support]))
+# we use our own implementation for now
+case "$enable_sha3" in
+    no)
+        ;;
+    *)
+        AC_DEFINE_UNQUOTED([USE_SHA3], [1], [Define this to enable SHA3 support.])
+        ;;
+esac
 
 AC_ARG_ENABLE(gost, AC_HELP_STRING([--disable-gost], [Disable GOST support]))
 case "$enable_gost" in
@@ -226,7 +235,7 @@ AC_DEFUN([AC_CHECK_GETADDRINFO_WITH_INCLUDES],
 AC_MSG_CHECKING(for getaddrinfo)
 AC_CACHE_VAL(ac_cv_func_getaddrinfo,
 [ac_cv_func_getaddrinfo=no
-AC_LINK_IFELSE( 
+AC_LINK_IFELSE(
 [
 #ifdef __cplusplus
 extern "C"
@@ -257,11 +266,11 @@ AC_LANG_PROGRAM(
 [
 	(void)getaddrinfo(NULL, NULL, NULL, NULL);
 ]
-), 
+),
 [ac_cv_func_getaddrinfo="yes"
 LDFLAGS="$LDFLAGS -lws2_32"
 ],
-[ac_cv_func_getaddrinfo="no" 
+[ac_cv_func_getaddrinfo="no"
 LIBS="$ORIGLIBS"
 ])
 )
@@ -305,7 +314,7 @@ AC_CHECK_DECLS([in6addr_any],,,[AC_INCLUDES_DEFAULT
 ])
 
 # check for ldns
-AC_ARG_WITH(ldns, 
+AC_ARG_WITH(ldns,
 	AC_HELP_STRING([--with-ldns=PATH        specify prefix of path of ldns library to use])
 	,
 	[

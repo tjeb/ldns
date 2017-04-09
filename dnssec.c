@@ -222,7 +222,7 @@ ldns_dnssec_pkt_get_rrsigs_for_name_and_type(const ldns_pkt *pkt,
 	ldns_rr_list *sigs;
 	ldns_rr_list *sigs_covered;
 	ldns_rdf *rdf_t;
-	
+
 	sigs = ldns_pkt_rr_list_by_name_and_type(pkt,
 									 name,
 									 LDNS_RR_TYPE_RRSIG,
@@ -232,7 +232,7 @@ ldns_dnssec_pkt_get_rrsigs_for_name_and_type(const ldns_pkt *pkt,
 	t_netorder = htons(type); /* rdf are in network order! */
 	rdf_t = ldns_rdf_new(LDNS_RDF_TYPE_TYPE, LDNS_RDF_SIZE_WORD, &t_netorder);
 	sigs_covered = ldns_rr_list_subtype_by_rdf(sigs, rdf_t, 0);
-	
+
 	ldns_rdf_free(rdf_t);
 	ldns_rr_list_deep_free(sigs);
 
@@ -525,7 +525,6 @@ ldns_key_rr2ds(const ldns_rr *key, ldns_hash h)
 	ldns_rr_set_class(ds, ldns_rr_get_class(key));
 
 	switch(h) {
-	default:
 	case LDNS_SHA1:
 		digest = LDNS_XMALLOC(uint8_t, LDNS_SHA1_DIGEST_LENGTH);
 		if (!digest) {
@@ -572,6 +571,31 @@ ldns_key_rr2ds(const ldns_rr *key, ldns_hash h)
 		ldns_rr_free(ds);
 		return NULL;
 #endif
+	case LDNS_SHA3_256:
+		digest = LDNS_XMALLOC(uint8_t, LDNS_SHA3_256_DIGEST_LENGTH);
+		if (!digest) {
+			ldns_rr_free(ds);
+			return NULL;
+		}
+		break;
+	case LDNS_SHA3_384:
+		digest = LDNS_XMALLOC(uint8_t, LDNS_SHA3_384_DIGEST_LENGTH);
+		if (!digest) {
+			ldns_rr_free(ds);
+			return NULL;
+		}
+		break;
+	case LDNS_SHA3_512:
+		digest = LDNS_XMALLOC(uint8_t, LDNS_SHA3_512_DIGEST_LENGTH);
+		if (!digest) {
+			ldns_rr_free(ds);
+			return NULL;
+		}
+		break;
+	default:
+		fprintf(stderr, "Error, unknown algorithm type %u\n", h);
+		ldns_rr_free(ds);
+		return NULL;
 	}
 
 	data_buf = ldns_buffer_new(LDNS_MAX_PACKETLEN);
@@ -595,7 +619,7 @@ ldns_key_rr2ds(const ldns_rr *key, ldns_hash h)
 		ldns_rr_free(ds);
 		return NULL;
 	} else {
-		ldns_rr_push_rdf(ds, ldns_rdf_clone( tmp )); 
+		ldns_rr_push_rdf(ds, ldns_rdf_clone( tmp ));
 	}
 
 	/* digest hash type */
@@ -642,10 +666,55 @@ ldns_key_rr2ds(const ldns_rr *key, ldns_hash h)
 		(void) ldns_sha256((unsigned char *) ldns_buffer_begin(data_buf),
 		                   (unsigned int) ldns_buffer_position(data_buf),
 		                   (unsigned char *) digest);
+printf("[XX] sha2 digest length %u\n", LDNS_SHA3_256_DIGEST_LENGTH);
+printf("[XX] sha2 digest at %p\n", digest);
+fflush(stdout);
 		tmp = ldns_rdf_new_frm_data(LDNS_RDF_TYPE_HEX,
 		                            LDNS_SHA256_DIGEST_LENGTH,
 		                            digest);
 		ldns_rr_push_rdf(ds, tmp);
+		break;
+	case LDNS_SHA3_256:
+#ifdef USE_SHA3
+printf("[XX] yo1!\n");
+fflush(stdout);
+		(void) ldns_sha3_256((unsigned char *) ldns_buffer_begin(data_buf),
+		                     (unsigned int) ldns_buffer_position(data_buf),
+		                     (unsigned char *) digest);
+printf("[XX] sha3 digest length %u\n", LDNS_SHA3_256_DIGEST_LENGTH);
+printf("[XX] sha3 digest at %p\n", digest);
+fflush(stdout);
+		tmp = ldns_rdf_new_frm_data(LDNS_RDF_TYPE_HEX,
+		                            LDNS_SHA3_256_DIGEST_LENGTH,
+		                            digest);
+printf("[XX] yo3\n");
+fflush(stdout);
+		ldns_rr_push_rdf(ds, tmp);
+printf("[XX] yo4\n");
+fflush(stdout);
+#endif
+		break;
+	case LDNS_SHA3_384:
+#ifdef USE_SHA3
+		(void) ldns_sha3_384((unsigned char *) ldns_buffer_begin(data_buf),
+		                     (unsigned int) ldns_buffer_position(data_buf),
+		                     (unsigned char *) digest);
+		tmp = ldns_rdf_new_frm_data(LDNS_RDF_TYPE_HEX,
+		                            LDNS_SHA3_384_DIGEST_LENGTH,
+		                            digest);
+		ldns_rr_push_rdf(ds, tmp);
+#endif
+		break;
+	case LDNS_SHA3_512:
+#ifdef USE_SHA3
+		(void) ldns_sha3_512((unsigned char *) ldns_buffer_begin(data_buf),
+		                     (unsigned int) ldns_buffer_position(data_buf),
+		                     (unsigned char *) digest);
+		tmp = ldns_rdf_new_frm_data(LDNS_RDF_TYPE_HEX,
+		                            LDNS_SHA3_512_DIGEST_LENGTH,
+		                            digest);
+		ldns_rr_push_rdf(ds, tmp);
+#endif
 		break;
 	case LDNS_HASH_GOST:
 #ifdef USE_GOST
@@ -684,23 +753,23 @@ ldns_key_rr2ds(const ldns_rr *key, ldns_hash h)
 /* From RFC3845:
  *
  * 2.1.2.  The List of Type Bit Map(s) Field
- * 
+ *
  *    The RR type space is split into 256 window blocks, each representing
  *    the low-order 8 bits of the 16-bit RR type space.  Each block that
  *    has at least one active RR type is encoded using a single octet
  *    window number (from 0 to 255), a single octet bitmap length (from 1
  *    to 32) indicating the number of octets used for the window block's
  *    bitmap, and up to 32 octets (256 bits) of bitmap.
- * 
+ *
  *    Window blocks are present in the NSEC RR RDATA in increasing
  *    numerical order.
- * 
+ *
  *    "|" denotes concatenation
- * 
+ *
  *    Type Bit Map(s) Field = ( Window Block # | Bitmap Length | Bitmap ) +
- * 
+ *
  *    <cut>
- * 
+ *
  *    Blocks with no types present MUST NOT be included.  Trailing zero
  *    octets in the bitmap MUST be omitted.  The length of each block's
  *    bitmap is determined by the type code with the largest numerical
@@ -834,7 +903,7 @@ ldns_dnssec_create_nsec(const ldns_dnssec_name *from,
 		/* Do not include non-authoritative rrsets on the delegation point
 		 * in the type bitmap */
 		if ((on_delegation_point && (
-				cur_rrsets->type == LDNS_RR_TYPE_NS 
+				cur_rrsets->type == LDNS_RR_TYPE_NS
 			     || cur_rrsets->type == LDNS_RR_TYPE_DS))
 			|| (!on_delegation_point &&
 				cur_rrsets->type != LDNS_RR_TYPE_RRSIG
@@ -1252,7 +1321,7 @@ ldns_create_nsec3(const ldns_rdf *cur_owner,
 uint8_t
 ldns_nsec3_algorithm(const ldns_rr *nsec3_rr)
 {
-	if (nsec3_rr && 
+	if (nsec3_rr &&
 	      (ldns_rr_get_type(nsec3_rr) == LDNS_RR_TYPE_NSEC3 ||
 	       ldns_rr_get_type(nsec3_rr) == LDNS_RR_TYPE_NSEC3PARAM)
 	    && (ldns_rr_rdf(nsec3_rr, 0) != NULL)
@@ -1265,7 +1334,7 @@ ldns_nsec3_algorithm(const ldns_rr *nsec3_rr)
 uint8_t
 ldns_nsec3_flags(const ldns_rr *nsec3_rr)
 {
-	if (nsec3_rr && 
+	if (nsec3_rr &&
 	      (ldns_rr_get_type(nsec3_rr) == LDNS_RR_TYPE_NSEC3 ||
 	       ldns_rr_get_type(nsec3_rr) == LDNS_RR_TYPE_NSEC3PARAM)
 	    && (ldns_rr_rdf(nsec3_rr, 1) != NULL)
@@ -1292,13 +1361,13 @@ ldns_nsec3_iterations(const ldns_rr *nsec3_rr)
 		return ldns_rdf2native_int16(ldns_rr_rdf(nsec3_rr, 2));
 	}
 	return 0;
-	
+
 }
 
 ldns_rdf *
 ldns_nsec3_salt(const ldns_rr *nsec3_rr)
 {
-	if (nsec3_rr && 
+	if (nsec3_rr &&
 	      (ldns_rr_get_type(nsec3_rr) == LDNS_RR_TYPE_NSEC3 ||
 	       ldns_rr_get_type(nsec3_rr) == LDNS_RR_TYPE_NSEC3PARAM)
 	    ) {
@@ -1547,8 +1616,8 @@ ldns_nsec_covers_name(const ldns_rr *nsec, const ldns_rdf *name)
 /* sig may be null - if so look in the packet */
 
 ldns_status
-ldns_pkt_verify_time(const ldns_pkt *p, ldns_rr_type t, const ldns_rdf *o, 
-		const ldns_rr_list *k, const ldns_rr_list *s, 
+ldns_pkt_verify_time(const ldns_pkt *p, ldns_rr_type t, const ldns_rdf *o,
+		const ldns_rr_list *k, const ldns_rr_list *s,
 		time_t check_time, ldns_rr_list *good_keys)
 {
 	ldns_rr_list *rrset;
@@ -1611,7 +1680,7 @@ ldns_pkt_verify_time(const ldns_pkt *p, ldns_rr_type t, const ldns_rdf *o,
 }
 
 ldns_status
-ldns_pkt_verify(const ldns_pkt *p, ldns_rr_type t, const ldns_rdf *o, 
+ldns_pkt_verify(const ldns_pkt *p, ldns_rr_type t, const ldns_rdf *o,
 		const ldns_rr_list *k, const ldns_rr_list *s, ldns_rr_list *good_keys)
 {
 	return ldns_pkt_verify_time(p, t, o, k, s, ldns_time(NULL), good_keys);

@@ -201,6 +201,20 @@ ldns_sign_public_buffer(ldns_buffer *sign_buf, ldns_key *current_key)
 				   ldns_key_evp_key(current_key),
 				   EVP_md5());
 		break;
+#ifdef USE_SHA3
+	case LDNS_SIGN_RSASHA3_256:
+//		b64rdf = ldns_sign_public_rsasha3_256(
+//				   sign_buf,
+//				   ldns_key_evp_key(current_key));
+//		break;
+	case LDNS_SIGN_RSASHA3_384:
+	case LDNS_SIGN_RSASHA3_512:
+		b64rdf = ldns_sign_public_rsasha3(
+				   sign_buf,
+				   ldns_key_evp_key(current_key),
+				   ldns_key_algorithm(current_key));
+		break;
+#endif
 	default:
 		/* do _you_ know this alg? */
 		printf("unknown algorithm, ");
@@ -245,7 +259,7 @@ ldns_sign_public(ldns_rr_list *rrset, ldns_key_list *keys)
 
 	/* make it canonical */
 	for(i = 0; i < ldns_rr_list_rr_count(rrset_clone); i++) {
-		ldns_rr_set_ttl(ldns_rr_list_rr(rrset_clone, i), 
+		ldns_rr_set_ttl(ldns_rr_list_rr(rrset_clone, i),
 			ldns_rr_ttl(ldns_rr_list_rr(rrset, 0)));
 		ldns_rr2canonical(ldns_rr_list_rr(rrset_clone, i));
 	}
@@ -583,7 +597,7 @@ ldns_sign_public_rsasha1(ldns_buffer *to_sign, RSA *key)
 		return NULL;
 	}
 
-	sigdata_rdf = ldns_rdf_new_frm_data(LDNS_RDF_TYPE_B64, siglen, 
+	sigdata_rdf = ldns_rdf_new_frm_data(LDNS_RDF_TYPE_B64, siglen,
 								 ldns_buffer_begin(b64sig));
 	ldns_buffer_free(b64sig); /* can't free this buffer ?? */
 	return sigdata_rdf;
@@ -620,6 +634,691 @@ ldns_sign_public_rsamd5(ldns_buffer *to_sign, RSA *key)
 }
 #endif /* HAVE_SSL */
 
+#if 0
+ldns_rdf *
+ldns_sign_public_rsasha3_256(ldns_buffer *to_sign, EVP_PKEY *key)
+{
+	//unsigned int siglen;
+	//ldns_rdf *sigdata_rdf;
+	ldns_buffer *b64sig;
+	int r;
+	unsigned int digest_len = LDNS_SHA3_256_DIGEST_LENGTH;
+	unsigned char digest[LDNS_SHA3_256_DIGEST_LENGTH];
+
+	//siglen = 0;
+	b64sig = ldns_buffer_new(LDNS_MAX_PACKETLEN);
+	if (!b64sig) {
+		fprintf(stderr, "Error, could not allocate signature buffer");
+		return NULL;
+	}
+
+	EVP_MD_CTX *ctx;
+	ctx = EVP_MD_CTX_create();
+	r = EVP_DigestInit(ctx, EVP_sha3_256());
+	if(r != 1) {
+		fprintf(stderr, "error in EVP_DigestInit: %s\n", ERR_error_string(r, NULL));
+		ldns_buffer_free(b64sig);
+		EVP_MD_CTX_destroy(ctx);
+		return NULL;
+	}
+	r = EVP_DigestUpdate(ctx, (unsigned char*)ldns_buffer_begin(to_sign),
+		                          ldns_buffer_position(to_sign));
+	if(r != 1) {
+		fprintf(stderr, "error in EVP_DigestUpdate: %s\n", ERR_error_string(r, NULL));
+		ldns_buffer_free(b64sig);
+		EVP_MD_CTX_destroy(ctx);
+		return NULL;
+	}
+	r = EVP_DigestFinal(ctx, digest, &digest_len);
+	if(r != 1) {
+		fprintf(stderr, "error in EVP_DigestFinal: %s\n", ERR_error_string(r, NULL));
+		ldns_buffer_free(b64sig);
+		EVP_MD_CTX_destroy(ctx);
+		return NULL;
+	}
+
+	printf("[XX] adding padding\n");
+	unsigned char EM[1024];
+	r = RSA_padding_add_PKCS1_PSS(EVP_PKEY_get1_RSA(key), EM, digest, EVP_sha3_256(), -2 /* maximum salt length*/);
+	printf("[XX] done adding padding\n");
+	if(r == 1) {
+		fprintf(stderr, "[XX] ok\n");
+	} else {
+		fprintf(stderr, "error in RSA_padding_add_PKCS1_PSS: %s\n", ERR_error_string(r, NULL));
+		ldns_buffer_free(b64sig);
+		EVP_MD_CTX_destroy(ctx);
+		return NULL;
+	}
+
+	return NULL;
+}
+#endif // if 0
+
+#if 0
+ldns_rdf *
+ldns_sign_public_rsasha3(ldns_buffer *to_sign, EVP_PKEY *key, ldns_signing_algorithm algorithm)
+{
+	printf("[XX] signing data\n");
+	unsigned char *sha3_hash;
+	unsigned int siglen;
+	ldns_rdf *sigdata_rdf;
+	ldns_buffer *b64sig;
+	int r;
+
+	siglen = 0;
+	b64sig = ldns_buffer_new(LDNS_MAX_PACKETLEN);
+	if (!b64sig) {
+		fprintf(stderr, "Error, could not allocate signature buffer");
+		return NULL;
+	}
+	printf("[XX] algorithm: %u\n", algorithm);
+
+	// Digest using one of the SHA3 digests
+	unsigned int digest_size;
+	switch (algorithm) {
+	case LDNS_SIGN_RSASHA3_256:
+		printf("[XX] sha3 256\n");
+		sha3_hash = ldns_sha3_256((unsigned char*)ldns_buffer_begin(to_sign),
+		                          ldns_buffer_position(to_sign), NULL);
+		digest_size = LDNS_SHA3_256_DIGEST_LENGTH;
+		break;
+	case LDNS_SIGN_RSASHA3_384:
+		printf("[XX] sha3 384\n");
+		sha3_hash = ldns_sha3_384((unsigned char*)ldns_buffer_begin(to_sign),
+		                          ldns_buffer_position(to_sign), NULL);
+		digest_size = LDNS_SHA3_384_DIGEST_LENGTH;
+		break;
+	case LDNS_SIGN_RSASHA3_512:
+		printf("[XX] sha3 512\n");
+		sha3_hash = ldns_sha3_512((unsigned char*)ldns_buffer_begin(to_sign),
+		                          ldns_buffer_position(to_sign), NULL);
+		digest_size = LDNS_SHA3_512_DIGEST_LENGTH;
+		break;
+	default:
+		fprintf(stderr, "Error: called ldns_sign_public_rsasha3 without rsasha3 algorithm\n");
+		return NULL;
+	}
+
+	if (!sha3_hash) {
+		fprintf(stderr, "Error, unable to create SHA3 digest\n");
+		ldns_buffer_free(b64sig);
+		return NULL;
+	}
+
+	printf("[XX] converting digest to EVP form\n");
+	// put that in a null digester
+	unsigned char pDigest[32];
+	EVP_MD_CTX *ctx;
+	ctx = EVP_MD_CTX_create();
+	EVP_DigestInit(ctx, EVP_sha384());
+	EVP_DigestUpdate(ctx, (const void*) sha3_hash, digest_size);
+	EVP_DigestFinal(ctx, pDigest, &digest_size);
+	printf("[XX] done converting digest to EVP form\n");
+
+
+	// Pad the message using RSASSA-PSS
+	// TODO: size etc. ctx?
+	unsigned char EM[128];
+	printf("[XX] adding padding\n");
+	r = RSA_padding_add_PKCS1_PSS(EVP_PKEY_get1_RSA(key), EM, pDigest, EVP_md_null(), -2 /* maximum salt length*/);
+	printf("[XX] done adding padding\n");
+	if(r == 1) {
+		fprintf(stderr, "[XX] ok\n");
+	} else {
+		fprintf(stderr, "error in RSA_padding_add_PKCS1_PSS: %s\n", ERR_error_string(r, NULL));
+		ldns_buffer_free(b64sig);
+		EVP_MD_CTX_destroy(ctx);
+		return NULL;
+	}
+
+	// can we pass NULL as digest type?
+	r = EVP_SignInit(ctx, EVP_md_null());
+	if(r == 1) {
+		r = EVP_SignUpdate(ctx, sha3_hash, digest_size);
+	} else {
+		fprintf(stderr, "error in EVP_SignUpdate: %s\n", ERR_error_string(r, NULL));
+		ldns_buffer_free(b64sig);
+		EVP_MD_CTX_destroy(ctx);
+		return NULL;
+	}
+	if(r == 1) {
+		r = EVP_SignFinal(ctx, (unsigned char*)
+					   ldns_buffer_begin(b64sig), &siglen, key);
+	} else {
+		fprintf(stderr, "error in EVP_SignFinal\n");
+		ldns_buffer_free(b64sig);
+		EVP_MD_CTX_destroy(ctx);
+		return NULL;
+	}
+	if(r != 1) {
+		fprintf(stderr, "error in EVP_Sign\n");
+		ldns_buffer_free(b64sig);
+		EVP_MD_CTX_destroy(ctx);
+		return NULL;
+	}
+	// pad using PSS
+	//status = RSA_padding_add_PKCS1_PSS(pRsaKey, EM, pDigest, EVP_sha256(), -2 /* maximum salt length*/);
+
+//	result = RSA_sign(0, sha3_hash, SHA_DIGEST_LENGTH,
+//				   (unsigned char*)ldns_buffer_begin(b64sig),
+//				   &siglen, key);
+	if (r != 1) {
+		fprintf(stderr, "error signing data\n");
+		ldns_buffer_free(b64sig);
+		return NULL;
+	}
+
+	sigdata_rdf = ldns_rdf_new_frm_data(LDNS_RDF_TYPE_B64, siglen,
+								 ldns_buffer_begin(b64sig));
+	ldns_buffer_free(b64sig);
+	return sigdata_rdf;
+}
+#endif
+
+#if 0
+ldns_rdf *
+ldns_sign_public_rsasha3(ldns_buffer *to_sign, EVP_PKEY *key, ldns_signing_algorithm algorithm)
+{
+	printf("[XX] signing data\n");
+	unsigned char *sha3_hash;
+	int siglen = -1;
+	ldns_rdf *sigdata_rdf;
+	ldns_buffer *b64sig;
+
+	b64sig = ldns_buffer_new(LDNS_MAX_PACKETLEN);
+	if (!b64sig) {
+		fprintf(stderr, "Error, could not allocate signature buffer");
+		return NULL;
+	}
+	printf("[XX] algorithm: %u\n", algorithm);
+
+	// Digest using one of the SHA3 digests
+	unsigned int digest_size;
+	switch (algorithm) {
+	case LDNS_SIGN_RSASHA3_256:
+		printf("[XX] sha3 256\n");
+		sha3_hash = ldns_sha3_256((unsigned char*)ldns_buffer_begin(to_sign),
+		                          ldns_buffer_position(to_sign), NULL);
+		digest_size = LDNS_SHA3_256_DIGEST_LENGTH;
+		break;
+	case LDNS_SIGN_RSASHA3_384:
+		printf("[XX] sha3 384\n");
+		sha3_hash = ldns_sha3_384((unsigned char*)ldns_buffer_begin(to_sign),
+		                          ldns_buffer_position(to_sign), NULL);
+		digest_size = LDNS_SHA3_384_DIGEST_LENGTH;
+		break;
+	case LDNS_SIGN_RSASHA3_512:
+		printf("[XX] sha3 512\n");
+		sha3_hash = ldns_sha3_512((unsigned char*)ldns_buffer_begin(to_sign),
+		                          ldns_buffer_position(to_sign), NULL);
+		digest_size = LDNS_SHA3_512_DIGEST_LENGTH;
+		break;
+	default:
+		fprintf(stderr, "Error: called ldns_sign_public_rsasha3 without rsasha3 algorithm\n");
+		return NULL;
+	}
+
+	if (!sha3_hash) {
+		fprintf(stderr, "Error, unable to create SHA3 digest\n");
+		ldns_buffer_free(b64sig);
+		return NULL;
+	}
+
+	// use local memory to keep data for now
+	RSA* rsa_key = EVP_PKEY_get1_RSA(key);
+	size_t keysize = RSA_size(rsa_key);
+
+	// Pad it using RSASSA-PSS
+
+
+	unsigned char* sign_bytes = (unsigned char*)malloc(keysize);
+	memset(sign_bytes, 0, 8);
+	memcpy(sign_bytes+8, sha3_hash, digest_size);
+	// salt
+	memset(sign_bytes+8+digest_size, 0, keysize - digest_size - 8);
+
+	unsigned char* sign_result = (unsigned char*)malloc(keysize);
+	memset(sign_result, 0, keysize);
+
+	printf("[XX] key at: %p size %u\n", rsa_key, RSA_size(rsa_key));
+	printf("[XX] digest size: %u\n", digest_size);
+
+	// Sign it with a hard call to RSA_privacte_encrypt
+	siglen = RSA_private_encrypt(keysize, sign_bytes, ldns_buffer_begin(b64sig), EVP_PKEY_get1_RSA(key), RSA_NO_PADDING);
+
+	free(sign_bytes);
+	free(sign_result);
+	if (siglen < 0) {
+		fprintf(stderr, "error signing data: %s\n", ERR_error_string(siglen, NULL));
+		ldns_buffer_free(b64sig);
+		return NULL;
+	}
+	printf("[XX] sig size: %d\n", siglen);
+
+	sigdata_rdf = ldns_rdf_new_frm_data(LDNS_RDF_TYPE_B64, siglen,
+								 ldns_buffer_begin(b64sig));
+	ldns_buffer_free(b64sig);
+	return sigdata_rdf;
+}
+#endif
+
+static inline unsigned int
+sha3_digest_len(ldns_algorithm algorithm) {
+	switch (algorithm) {
+	case LDNS_SIGN_RSASHA3_256:
+		return LDNS_SHA3_256_DIGEST_LENGTH;
+		break;
+	case LDNS_SIGN_RSASHA3_384:
+		return LDNS_SHA3_384_DIGEST_LENGTH;
+		break;
+	case LDNS_SIGN_RSASHA3_512:
+		return LDNS_SHA3_512_DIGEST_LENGTH;
+		break;
+	default:
+		fprintf(stderr, "Error: called sha3_digest_len without rsasha3 algorithm\n");
+		return 0;
+	}
+}
+
+// for SHA3 we need to digest twice, so we have a helper function to
+// keep the PSS algorithm more readable
+static inline unsigned char*
+sha3_digest(unsigned char* data, unsigned int data_len, ldns_algorithm algorithm, unsigned int* digest_len) {
+	if (digest_len != NULL) {
+		*digest_len = sha3_digest_len(algorithm);
+	}
+	switch (algorithm) {
+	case LDNS_SIGN_RSASHA3_256:
+		printf("[XX] sha3 256\n");
+		return ldns_sha3_256(data, data_len, NULL);
+		break;
+	case LDNS_SIGN_RSASHA3_384:
+		printf("[XX] sha3 384\n");
+		return ldns_sha3_384(data, data_len, NULL);
+		break;
+	case LDNS_SIGN_RSASHA3_512:
+		printf("[XX] sha3 512\n");
+		return ldns_sha3_512(data, data_len, NULL);
+		break;
+	default:
+		fprintf(stderr, "Error: called ldns_sign_public_rsasha3 without rsasha3 algorithm\n");
+		return NULL;
+	}
+}
+
+static inline void I2OSP(unsigned char* output, unsigned int X, unsigned int xLen)
+{
+	unsigned int i;
+	memset(output, 0, xLen);
+	for (i = xLen-1; i > 0; i--) {
+		output[i] = (uint8_t) (X % 256);
+		X = X / 256;
+	}
+}
+
+static inline unsigned char*
+MGF(unsigned char* mgfSeed, unsigned int mgfSeed_len, unsigned int maskLen, ldns_algorithm algorithm)
+{
+	(void)mgfSeed;
+	(void)algorithm;
+
+	unsigned int digest_len = sha3_digest_len(algorithm);
+	unsigned int counter;
+	unsigned int steps = (maskLen / digest_len);
+	unsigned char* tmpseed;
+	unsigned char* tmpdata;
+	unsigned char* result;
+	unsigned char* digest;
+
+	if (maskLen % digest_len > 0) {
+		steps++;
+	}
+
+	tmpseed = (unsigned char*) malloc(mgfSeed_len + 4);
+	tmpdata = (unsigned char*) malloc(digest_len * steps);
+	memcpy(tmpseed, mgfSeed, mgfSeed_len);
+
+	for (counter = 0; counter < steps; counter++) {
+	    I2OSP(tmpseed + mgfSeed_len, counter, 4);
+	    digest = sha3_digest(tmpseed, mgfSeed_len + 4, algorithm, NULL);
+	    memcpy(tmpdata + counter*digest_len, digest, digest_len);
+	    free(digest);
+	}
+
+	result = (unsigned char*) malloc(maskLen);
+	memcpy(result, tmpdata, maskLen);
+	free(tmpdata);
+	return result;
+}
+
+unsigned int
+rssa_pss_encode(unsigned char* M, unsigned int M_len, unsigned int emBits)
+{
+	unsigned char* mHash = NULL;
+	unsigned int mHash_len;
+
+	// Hard coded salt for now
+	char* salt;
+	unsigned int salt_len;
+
+	unsigned char* MM = NULL;
+	unsigned int MM_len;
+
+	unsigned char* H = NULL;
+	unsigned int H_len;
+
+	unsigned char* PS = NULL;
+	unsigned int PS_len;
+
+	unsigned char* DB = NULL;
+	unsigned int DB_len;
+
+	unsigned char* dbMask = NULL;
+	unsigned int dbMask_len;
+
+	unsigned char* maskedDB = NULL;
+	unsigned int maskedDB_len;
+
+	unsigned char* EM = NULL;
+
+	unsigned char* sig = NULL;
+	int sig_len;
+
+	unsigned int i;
+	ldns_rdf* sigdata_rdf = NULL;
+
+	// settings from draft-muks: emLen is keysize (-1); salt_len is digest len
+	// From RFC8017:
+	// Note that the octet length of EM will be one less than k if
+	// modBits - 1 is divisible by 8 and equal to k otherwise.
+	rsa_key = EVP_PKEY_get1_RSA(key);
+	keysize = RSA_size(rsa_key);
+	emLen = keysize;
+	if (keysize % 8 == 0) {
+	    emLen--;
+	}
+	// (set salt len after first digest)
+
+	//1.   If the length of M is greater than the input limitation for
+	//     the hash function (2^61 - 1 octets for SHA-1), output
+	//     "message too long" and stop.
+
+	// ignore length for now, should be OK
+
+	//2.   Let mHash = Hash(M), an octet string of length hLen.
+	mHash = sha3_digest(ldns_buffer_begin(M),
+	                    ldns_buffer_position(M),
+	                    algorithm,
+	                    &mHash_len);
+	// TODO: check NULL
+	salt_len = mHash_len;
+
+	//3.   If emLen < hLen + sLen + 2, output "encoding error" and stop.
+	// do we know intended emLen?
+	if (emLen < mHash_len + salt_len + 2) {
+	    // error
+	    fprintf(stderr, "PSS Encoding error\n");
+	    return NULL;
+	}
+
+	//4.   Generate a random octet string salt of length sLen; if sLen =
+	//     0, then salt is the empty string.
+
+	// fixed salt for now
+	salt = (char*) malloc(salt_len);
+	memset(salt, 0, salt_len);
+
+	//5.   Let
+	//       M' = (0x)00 00 00 00 00 00 00 00 || mHash || salt;
+	//     M' is an octet string of length 8 + hLen + sLen with eight
+	//     initial zero octets.
+	MM_len = 8 + mHash_len + salt_len;
+	MM = (unsigned char*) malloc(MM_len);
+	memset(MM, 0, 8);
+	memcpy(MM+8, mHash, mHash_len);
+	memcpy(MM+8+mHash_len, salt, salt_len);
+
+	//6.   Let H = Hash(M'), an octet string of length hLen.
+	H = sha3_digest(MM, MM_len, algorithm, &H_len);
+
+	//7.   Generate an octet string PS consisting of emLen - sLen - hLen
+	//     - 2 zero octets.  The length of PS may be 0.
+	PS_len = emLen - salt_len - H_len - 2;
+	printf("[XX] PS size: %d\n", PS_len);
+	PS = (unsigned char*) malloc(PS_len);
+	memset(PS, 0, PS_len);
+
+	//8.   Let DB = PS || 0x01 || salt; DB is an octet string of length
+	//     emLen - hLen - 1.
+	DB_len = PS_len + 1 + salt_len;
+	if (DB_len != emLen - mHash_len - 1) {
+	    fprintf(stderr, "DB len is wrong?\n");
+	    return NULL;
+	}
+	DB = (unsigned char*) malloc(DB_len);
+	memcpy(DB, PS, PS_len);
+	memset(DB + PS_len, 0x01, 1);
+	memcpy(DB + 9, salt, salt_len);
+
+	//9.   Let dbMask = MGF(H, emLen - hLen - 1).
+	dbMask_len = emLen - H_len - 1;
+	dbMask = MGF(H, H_len, dbMask_len, algorithm);
+
+	//10.  Let maskedDB = DB \xor dbMask.
+	maskedDB_len = dbMask_len;
+	maskedDB = (unsigned char*) malloc(maskedDB_len);
+	for (i = 0; i < maskedDB_len; i++) {
+	    maskedDB[i] = DB[i] ^ dbMask[i];
+	}
+
+	//11.  Set the leftmost 8emLen - emBits bits of the leftmost octet
+	//     in maskedDB to zero.
+	// we set emBits to 8*emLen so this step should not be necessary
+
+	//12.  Let EM = maskedDB || H || 0xbc.
+	printf("[XX] emLen: %u\n", emLen);
+	printf("[XX] emBits: %u\n", emLen);
+	printf("[XX] maskedDBlen: %u\n", maskedDB_len);
+	printf("[XX] H_len: %u\n", H_len);
+	// sanity check
+	if (emLen != maskedDB_len + H_len + 1) {
+	    fprintf(stderr, "Error in PSS algorithm; sizes do not match up\n");
+	    return NULL;
+	}
+	EM = (unsigned char*) malloc(emLen);
+	memcpy(EM, maskedDB, maskedDB_len);
+	memcpy(EM+maskedDB_len, H, H_len);
+	memset(EM+maskedDB_len+H_len, 0xbc, 1);
+
+	return EM;
+}
+
+ldns_rdf *
+ldns_sign_public_rsasha3(ldns_buffer *M, EVP_PKEY *key, ldns_signing_algorithm algorithm)
+{
+	RSA* rsa_key;
+	unsigned int keysize;
+
+	unsigned int emLen;
+
+	unsigned char* mHash = NULL;
+	unsigned int mHash_len;
+
+	// Hard coded salt for now
+	char* salt;
+	unsigned int salt_len;
+
+	unsigned char* MM = NULL;
+	unsigned int MM_len;
+
+	unsigned char* H = NULL;
+	unsigned int H_len;
+
+	unsigned char* PS = NULL;
+	unsigned int PS_len;
+
+	unsigned char* DB = NULL;
+	unsigned int DB_len;
+
+	unsigned char* dbMask = NULL;
+	unsigned int dbMask_len;
+
+	unsigned char* maskedDB = NULL;
+	unsigned int maskedDB_len;
+
+	unsigned char* EM = NULL;
+
+	unsigned char* sig = NULL;
+	int sig_len;
+
+	unsigned int i;
+	ldns_rdf* sigdata_rdf = NULL;
+
+	// settings from draft-muks: emLen is keysize (-1); salt_len is digest len
+	// From RFC8017:
+	// Note that the octet length of EM will be one less than k if
+	// modBits - 1 is divisible by 8 and equal to k otherwise.
+	rsa_key = EVP_PKEY_get1_RSA(key);
+	keysize = RSA_size(rsa_key);
+	emLen = keysize;
+	if (keysize % 8 == 0) {
+	    emLen--;
+	}
+	// (set salt len after first digest)
+
+	//1.   If the length of M is greater than the input limitation for
+	//     the hash function (2^61 - 1 octets for SHA-1), output
+	//     "message too long" and stop.
+
+	// ignore length for now, should be OK
+
+	//2.   Let mHash = Hash(M), an octet string of length hLen.
+	mHash = sha3_digest(ldns_buffer_begin(M),
+	                    ldns_buffer_position(M),
+	                    algorithm,
+	                    &mHash_len);
+	// TODO: check NULL
+	salt_len = mHash_len;
+
+	//3.   If emLen < hLen + sLen + 2, output "encoding error" and stop.
+	// do we know intended emLen?
+	if (emLen < mHash_len + salt_len + 2) {
+	    // error
+	    fprintf(stderr, "PSS Encoding error\n");
+	    return NULL;
+	}
+
+	//4.   Generate a random octet string salt of length sLen; if sLen =
+	//     0, then salt is the empty string.
+
+	// fixed salt for now
+	salt = (char*) malloc(salt_len);
+	memset(salt, 0, salt_len);
+
+	//5.   Let
+	//       M' = (0x)00 00 00 00 00 00 00 00 || mHash || salt;
+	//     M' is an octet string of length 8 + hLen + sLen with eight
+	//     initial zero octets.
+	MM_len = 8 + mHash_len + salt_len;
+	MM = (unsigned char*) malloc(MM_len);
+	memset(MM, 0, 8);
+	memcpy(MM+8, mHash, mHash_len);
+	memcpy(MM+8+mHash_len, salt, salt_len);
+
+	//6.   Let H = Hash(M'), an octet string of length hLen.
+	H = sha3_digest(MM, MM_len, algorithm, &H_len);
+
+	//7.   Generate an octet string PS consisting of emLen - sLen - hLen
+	//     - 2 zero octets.  The length of PS may be 0.
+	PS_len = emLen - salt_len - H_len - 2;
+	printf("[XX] PS size: %d\n", PS_len);
+	PS = (unsigned char*) malloc(PS_len);
+	memset(PS, 0, PS_len);
+
+	//8.   Let DB = PS || 0x01 || salt; DB is an octet string of length
+	//     emLen - hLen - 1.
+	DB_len = PS_len + 1 + salt_len;
+	if (DB_len != emLen - mHash_len - 1) {
+	    fprintf(stderr, "DB len is wrong?\n");
+	    return NULL;
+	}
+	DB = (unsigned char*) malloc(DB_len);
+	memcpy(DB, PS, PS_len);
+	memset(DB + PS_len, 0x01, 1);
+	memcpy(DB + 9, salt, salt_len);
+
+	//9.   Let dbMask = MGF(H, emLen - hLen - 1).
+	dbMask_len = emLen - H_len - 1;
+	dbMask = MGF(H, H_len, dbMask_len, algorithm);
+
+	//10.  Let maskedDB = DB \xor dbMask.
+	maskedDB_len = dbMask_len;
+	maskedDB = (unsigned char*) malloc(maskedDB_len);
+	for (i = 0; i < maskedDB_len; i++) {
+	    maskedDB[i] = DB[i] ^ dbMask[i];
+	}
+
+	//11.  Set the leftmost 8emLen - emBits bits of the leftmost octet
+	//     in maskedDB to zero.
+	// we set emBits to 8*emLen so this step should not be necessary
+
+	//12.  Let EM = maskedDB || H || 0xbc.
+	printf("[XX] emLen: %u\n", emLen);
+	printf("[XX] emBits: %u\n", emLen);
+	printf("[XX] maskedDBlen: %u\n", maskedDB_len);
+	printf("[XX] H_len: %u\n", H_len);
+	// sanity check
+	if (emLen != maskedDB_len + H_len + 1) {
+	    fprintf(stderr, "Error in PSS algorithm; sizes do not match up\n");
+	    return NULL;
+	}
+	EM = (unsigned char*) malloc(emLen);
+	memcpy(EM, maskedDB, maskedDB_len);
+	memcpy(EM+maskedDB_len, H, H_len);
+	memset(EM+maskedDB_len+H_len, 0xbc, 1);
+
+	// phew. Now sign that.
+	sig = (unsigned char*)malloc(keysize);
+	fflush(stderr);
+	fflush(stdout);
+	fprintf(stderr, "Signing EM of size %u with key of size %u\n", emLen, keysize);
+	fprintf(stderr, "EM at %p, sig at %p\n", EM, sig);
+	fprintf(stderr, "byte 0 is: %02x\n", (uint8_t)EM[0]);
+	fflush(stderr);
+	fflush(stdout);
+	sig_len = RSA_private_encrypt(emLen, EM, sig, rsa_key, RSA_NO_PADDING);
+	if (sig_len != (int)keysize) {
+	    fflush(stderr);
+	    fflush(stdout);
+	    fprintf(stderr, "Error in RSA signing; signature size seems wrong (got %d, expected %u)\n", sig_len, keysize);
+	    fprintf(stderr, "%s\n", ERR_error_string(ERR_get_error(), NULL));
+	    fprintf(stderr, "to repeat; emLen is %u, keysize is %u\n", emLen, RSA_size(rsa_key));
+	    fflush(stderr);
+	    fflush(stdout);
+	    return NULL;
+	}
+
+	//13.  Output EM.
+	sigdata_rdf = ldns_rdf_new_frm_data(LDNS_RDF_TYPE_B64, sig_len, sig);
+	goto cleanup;
+
+	//cleanup
+	cleanup:
+	if (mHash != NULL) { free(mHash); }
+	if (salt != NULL) { free(salt); }
+	if (MM != NULL) { free(MM); }
+	if (H != NULL) { free(H); }
+	if (PS != NULL) { free(PS); }
+	if (DB != NULL) { free(DB); }
+	if (dbMask != NULL) { free(dbMask); }
+	if (maskedDB != NULL) { free(maskedDB); }
+	if (EM != NULL) { free(EM); }
+	if (sig != NULL) { free(sig); }
+
+	// free etc.
+	return sigdata_rdf;
+}
+
 /**
  * Pushes all rrs from the rrsets of type A and AAAA on gluelist.
  */
@@ -630,15 +1329,15 @@ ldns_dnssec_addresses_on_glue_list(
 {
 	ldns_dnssec_rrs *cur_rrs;
 	while (cur_rrset) {
-		if (cur_rrset->type == LDNS_RR_TYPE_A 
+		if (cur_rrset->type == LDNS_RR_TYPE_A
 				|| cur_rrset->type == LDNS_RR_TYPE_AAAA) {
-			for (cur_rrs = cur_rrset->rrs; 
-					cur_rrs; 
+			for (cur_rrs = cur_rrset->rrs;
+					cur_rrs;
 					cur_rrs = cur_rrs->next) {
 				if (cur_rrs->rr) {
-					if (!ldns_rr_list_push_rr(glue_list, 
+					if (!ldns_rr_list_push_rr(glue_list,
 							cur_rrs->rr)) {
-						return LDNS_STATUS_MEM_ERR; 
+						return LDNS_STATUS_MEM_ERR;
 						/* ldns_rr_list_push_rr()
 						 * returns false when unable
 						 * to increase the capacity
@@ -657,7 +1356,7 @@ ldns_dnssec_addresses_on_glue_list(
  * Marks the names in the zone that are occluded. Those names will be skipped
  * when walking the tree with the ldns_dnssec_name_node_next_nonglue()
  * function. But watch out! Names that are partially occluded (like glue with
- * the same name as the delegation) will not be marked and should specifically 
+ * the same name as the delegation) will not be marked and should specifically
  * be taken into account separately.
  *
  * When glue_list is given (not NULL), in the process of marking the names, all
@@ -668,7 +1367,7 @@ ldns_dnssec_addresses_on_glue_list(
  * \return LDNS_STATUS_OK on success, an error code otherwise
  */
 ldns_status
-ldns_dnssec_zone_mark_and_get_glue(ldns_dnssec_zone *zone, 
+ldns_dnssec_zone_mark_and_get_glue(ldns_dnssec_zone *zone,
 	ldns_rr_list *glue_list)
 {
 	ldns_rbnode_t    *node;
@@ -684,17 +1383,17 @@ ldns_dnssec_zone_mark_and_get_glue(ldns_dnssec_zone *zone,
 	if (!zone || !zone->names) {
 		return LDNS_STATUS_NULL;
 	}
-	for (node = ldns_rbtree_first(zone->names); 
-			node != LDNS_RBTREE_NULL; 
+	for (node = ldns_rbtree_first(zone->names);
+			node != LDNS_RBTREE_NULL;
 			node = ldns_rbtree_next(node)) {
 		name = (ldns_dnssec_name *) node->data;
 		owner = ldns_dnssec_name_name(name);
 
-		if (cut) { 
+		if (cut) {
 			/* The previous node was a zone cut, or a subdomain
 			 * below a zone cut. Is this node (still) a subdomain
 			 * below the cut? Then the name is occluded. Unless
-			 * the name contains a SOA, after which we are 
+			 * the name contains a SOA, after which we are
 			 * authoritative again.
 			 *
 			 * FIXME! If there are labels in between the SOA and
@@ -750,7 +1449,7 @@ ldns_dnssec_zone_mark_and_get_glue(ldns_dnssec_zone *zone,
  * Marks the names in the zone that are occluded. Those names will be skipped
  * when walking the tree with the ldns_dnssec_name_node_next_nonglue()
  * function. But watch out! Names that are partially occluded (like glue with
- * the same name as the delegation) will not be marked and should specifically 
+ * the same name as the delegation) will not be marked and should specifically
  * be taken into account separately.
  *
  * \param[in] zone the zone in which to mark the names
@@ -952,7 +1651,7 @@ ldns_dnssec_zone_create_nsec3s_mkmap(ldns_dnssec_zone *zone,
 			if (hashmap_node == NULL) {
 				return LDNS_STATUS_MEM_ERR;
 			}
-			current_name->hashed_name = 
+			current_name->hashed_name =
 				ldns_dname_label(ldns_rr_owner(nsec_rr), 0);
 
 			if (current_name->hashed_name == NULL) {
@@ -1167,7 +1866,7 @@ ldns_key_list_filter_for_non_dnskey(ldns_key_list *key_list, int flags)
 	ldns_signing_algorithm saw_zsk = 0;
 	ldns_key *key;
 	size_t i;
-	
+
 	if (!ldns_key_list_key_count(key_list))
 		return;
 
@@ -1268,14 +1967,14 @@ ldns_dnssec_zone_create_rrsigs_flg( ldns_dnssec_zone *zone
 				}
 
 				/* only sign non-delegation RRsets */
-				/* (glue should have been marked earlier, 
+				/* (glue should have been marked earlier,
 				 *  except on the delegation points itself) */
 				if (!on_delegation_point ||
-						ldns_rr_list_type(rr_list) 
+						ldns_rr_list_type(rr_list)
 							== LDNS_RR_TYPE_DS ||
-						ldns_rr_list_type(rr_list) 
+						ldns_rr_list_type(rr_list)
 							== LDNS_RR_TYPE_NSEC ||
-						ldns_rr_list_type(rr_list) 
+						ldns_rr_list_type(rr_list)
 							== LDNS_RR_TYPE_NSEC3) {
 					siglist = ldns_sign_public(rr_list, key_list);
 					for (i = 0; i < ldns_rr_list_rr_count(siglist); i++) {
@@ -1567,7 +2266,7 @@ ldns_zone_sign_nsec3(ldns_zone *zone, ldns_key_list *key_list, uint8_t algorithm
 		(void) ldns_dnssec_zone_add_rr(dnssec_zone,
 								 ldns_rr_list_rr(ldns_zone_rrs(zone),
 											  i));
-		ldns_zone_push_rr(signed_zone, 
+		ldns_zone_push_rr(signed_zone,
 					   ldns_rr_clone(ldns_rr_list_rr(ldns_zone_rrs(zone),
 											   i)));
 	}

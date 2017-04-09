@@ -2834,15 +2834,41 @@ ldns_verify_rrsig_rsasha3_raw(unsigned char* sig,
 {
 #ifdef USE_SHA3
 	ldns_status result;
-	RSA* rsa_key = ldns_key_buf2rsa_raw(key, keylen);
+	RSA* rsa_key;
+
+	unsigned char* decrypted_sig = NULL;
+	int decrypted_sig_len;
+
+	rsa_key = ldns_key_buf2rsa_raw(key, keylen);
 	if (key == NULL) {
 	    fprintf(stderr, "Error reading RSA key\n");
 	    result = LDNS_STATUS_SSL_ERR;
 	    goto cleanup;
 	}
 
-	result = LDNS_STATUS_OK;
+	result = LDNS_STATUS_CRYPTO_BOGUS;
 
+	if (siglen != (unsigned int)RSA_size(rsa_key)) {
+	    fprintf(stderr, "wrong signature length\n");
+	    goto cleanup;
+	}
+
+	decrypted_sig = (unsigned char*) malloc(RSA_size(rsa_key));
+	decrypted_sig_len = RSA_public_decrypt((int)siglen, sig, decrypted_sig, rsa_key, RSA_NO_PADDING);
+	if (decrypted_sig_len != RSA_size(rsa_key)) {
+	    fprintf(stderr, "Error, decrypted sig len wrong\n");
+	    goto cleanup;
+	}
+	printf("[XX] decrypted sig len: %d\n", decrypted_sig_len);
+
+	if (emsa_pss_verify(ldns_buffer_begin(rrset),
+	                    ldns_buffer_position(rrset),
+	                    decrypted_sig,
+	                    decrypted_sig_len,
+	                    (RSA_size(rsa_key) * 8) - 1,
+	                    algorithm) == 0) {
+		result = LDNS_STATUS_OK;
+	}
 
 	/* touch these to prevent compiler warnings */
 	(void) sig;
@@ -2855,7 +2881,8 @@ ldns_verify_rrsig_rsasha3_raw(unsigned char* sig,
 
 
 	cleanup:
-	if (rsa_key) { RSA_free(rsa_key); }
+	if (rsa_key != NULL) { RSA_free(rsa_key); }
+	if (decrypted_sig != NULL) { free(decrypted_sig); }
 	return result;
 #else
 	/* touch these to prevent compiler warnings */

@@ -489,8 +489,25 @@ MGF(unsigned char* mgfSeed, unsigned int mgfSeed_len, unsigned int maskLen, ldns
 	return result;
 }
 
+static inline void
+hexdump(FILE*out, const char* str, unsigned char* data, unsigned int data_len) {
+	fflush(stdout);
+	fflush(stderr);
+	fprintf(out, "%s:\n", str);
+	unsigned int i;
+	for (i = 0; i < data_len; i++) {
+		if (i % 10 == 0) {
+			fprintf(out, "\n%u:\t", i);
+		}
+		fprintf(out, "0x%02x ", data[i]);
+	}
+	fprintf(out, "\n");
+	fflush(stdout);
+	fflush(stderr);
+}
+
 unsigned char*
-rssa_pss_encode(unsigned char* M, unsigned int M_len, unsigned int emBits, unsigned int* emLen, ldns_algorithm algorithm)
+emsa_pss_encode(unsigned char* M, unsigned int M_len, unsigned int emBits, unsigned int* emLen, ldns_algorithm algorithm)
 {
 	unsigned char* mHash = NULL;
 	unsigned int mHash_len;
@@ -588,7 +605,7 @@ rssa_pss_encode(unsigned char* M, unsigned int M_len, unsigned int emBits, unsig
 	DB = (unsigned char*) malloc(DB_len);
 	memcpy(DB, PS, PS_len);
 	memset(DB + PS_len, 0x01, 1);
-	memcpy(DB + 9, salt, salt_len);
+	memcpy(DB + PS_len + 1, salt, salt_len);
 
 	//9.   Let dbMask = MGF(H, EM_len - hLen - 1).
 	dbMask_len = EM_len - H_len - 1;
@@ -627,6 +644,8 @@ rssa_pss_encode(unsigned char* M, unsigned int M_len, unsigned int emBits, unsig
 		*emLen = EM_len;
 	}
 
+	hexdump(stderr, "EM", EM, EM_len);
+
 	cleanup:
 	if (mHash != NULL) { free(mHash); }
 	if (salt != NULL) { free(salt); }
@@ -638,4 +657,186 @@ rssa_pss_encode(unsigned char* M, unsigned int M_len, unsigned int emBits, unsig
 	if (maskedDB != NULL) { free(maskedDB); }
 
 	return EM;
+}
+
+int
+emsa_pss_verify(unsigned char* M, unsigned int M_len,
+                unsigned char* EM, unsigned int EM_len,
+                unsigned int emBits,
+                ldns_algorithm algorithm) {
+	(void) M;
+	(void) M_len;
+	(void) EM;
+	(void) EM_len;
+	(void) emBits;
+	(void) algorithm;
+	fflush(stdout);
+	fflush(stderr);
+
+	int result = 1;
+
+	unsigned int mHash_len;
+	unsigned char* mHash = NULL;
+
+	unsigned int maskedDB_len;
+	unsigned char* maskedDB = NULL;
+
+	unsigned int H_len;
+	unsigned char* H = NULL;
+
+	unsigned int zeroBits;
+
+	unsigned char* dbMask = NULL;
+
+    unsigned int DB_len;
+    unsigned char* DB = NULL;
+    unsigned int i;
+
+    unsigned int zeroOctets;
+    unsigned int oneOctet_pos;
+
+    unsigned char* salt = NULL;
+	unsigned int salt_len;
+
+	unsigned int MM_len;
+	unsigned char* MM = NULL;
+
+	unsigned int HH_len;
+	unsigned char* HH = NULL;
+
+
+    // 1.   If the length of M is greater than the input limitation for
+    //      the hash function (2^61 - 1 octets for SHA-1), output
+    //      "inconsistent" and stop.
+
+    // 2.   Let mHash = Hash(M), an octet string of length hLen.
+    mHash = sha3_digest(M, M_len, algorithm, &mHash_len);
+
+    // 3.   If emLen < hLen + sLen + 2, output "inconsistent" and stop.
+    salt_len = sha3_digest_len(algorithm);
+    if (EM_len < mHash_len + salt_len + 2) {
+		fprintf(stderr, "EM len wrong\n");
+		goto cleanup;
+	}
+
+	hexdump(stderr, "EM", EM, EM_len);
+
+    // 4.   If the rightmost octet of EM does not have hexadecimal value
+    //      0xbc, output "inconsistent" and stop.
+    if (EM[EM_len-1] != 0xbc) {
+		fprintf(stderr, "Last octet of EM not 0xbc\n");
+		goto cleanup;
+	}
+
+    // 5.   Let maskedDB be the leftmost emLen - hLen - 1 octets of EM,
+    //      and let H be the next hLen octets.
+    H_len = sha3_digest_len(algorithm);
+    maskedDB_len = EM_len - H_len - 1;
+    maskedDB = (unsigned char*) malloc(maskedDB_len);
+    memcpy(maskedDB, EM, maskedDB_len);
+    H = (unsigned char*) malloc(H_len);
+    memcpy(H, EM + maskedDB_len, H_len);
+
+    // 6.   If the leftmost 8emLen - emBits bits of the leftmost octet in
+    //      maskedDB are not all equal to zero, output "inconsistent" and
+    //      stop.
+    zeroBits = 8 * EM_len - emBits;
+    printf("[XX] zerobits: %u\n", zeroBits);
+    if (maskedDB[0] >> (8-zeroBits) != 0x00) {
+		fprintf(stderr, "leftmost %u bits of maskedDB are not zero\n", zeroBits);
+		goto cleanup;
+	}
+
+    // 7.   Let dbMask = MGF(H, emLen - hLen - 1).
+	dbMask = MGF(H, H_len, EM_len - H_len - 1, algorithm);
+
+    // 8.   Let DB = maskedDB \xor dbMask.
+    DB_len = maskedDB_len;
+    DB = (unsigned char*) malloc(DB_len);
+	for (i = 0; i < DB_len; i++) {
+		DB[i] = maskedDB[i] ^ dbMask[i];
+	}
+
+    // 9.   Set the leftmost 8emLen - emBits bits of the leftmost octet
+    //      in DB to zero.
+	printf("[XX] Byte zero: %02x\n", DB[0]);
+	DB[0] = DB[0] << (EM_len*8 - emBits);
+	DB[0] = DB[0] >> (EM_len*8 - emBits);
+	printf("[XX] Byte zero: %02x\n", DB[0]);
+
+    // 10.  If the emLen - hLen - sLen - 2 leftmost octets of DB are not
+    //      zero or if the octet at position emLen - hLen - sLen - 1 (the
+    //      leftmost position is "position 1") does not have hexadecimal
+    //      value 0x01, output "inconsistent" and stop.
+    zeroOctets = EM_len - H_len - salt_len - 2;
+    for (i = 0; i < zeroOctets; i++) {
+		if (DB[i] != 0x00) {
+			fprintf(stderr, "Leftmost %u octets of DB are not zero\n", zeroOctets);
+			goto cleanup;
+		}
+	}
+
+	printf("[XX] EM_len: %u\n", EM_len);
+	printf("[XX] EM_len: %u\n", EM_len);
+	printf("[XX] H_len: %u\n", H_len);
+	printf("[XX] salt_len: %u\n", salt_len);
+
+	oneOctet_pos = EM_len - H_len - salt_len - 1;
+	if (DB[oneOctet_pos -1] != 0x01) {
+		fprintf(stderr, "octet at %u not 0x01 (0x%02x)\n", oneOctet_pos, DB[oneOctet_pos-1]);
+		goto cleanup;
+	}
+
+	hexdump(stderr, "DB", DB, DB_len);
+
+    // 11.  Let salt be the last sLen octets of DB.
+	salt = (unsigned char*) malloc(salt_len);
+	memcpy(salt, DB + DB_len - salt_len, salt_len);
+
+	hexdump(stderr, "Salt", salt, salt_len);
+    // 12.  Let
+
+    //         M' = (0x)00 00 00 00 00 00 00 00 || mHash || salt ;
+    //      M' is an octet string of length 8 + hLen + sLen with eight
+    //      initial zero octets.
+    MM_len = 8 + mHash_len + salt_len;
+	MM = (unsigned char*) malloc(MM_len);
+	memset(MM, 0, 8);
+	memcpy(MM + 8, mHash, mHash_len);
+	memcpy(MM + 8 + mHash_len, salt, salt_len);
+
+    // 13.  Let H' = Hash(M'), an octet string of length hLen.
+    HH = sha3_digest(MM, MM_len, algorithm, &HH_len);
+
+	hexdump(stderr, "MM", MM, MM_len);
+
+    // 14.  If H = H', output "consistent".  Otherwise, output
+    //      "inconsistent".
+    if (HH_len != H_len) {
+		fprintf(stderr, "Error: H' and H differ in size\n");
+		goto cleanup;
+	}
+    if (memcmp(H, HH, HH_len) != 0) {
+		fprintf(stderr, "Error: H' and H do not match\n");
+		hexdump(stderr, "H", H, H_len);
+		hexdump(stderr, "HH", HH, HH_len);
+		goto cleanup;
+	}
+
+	// consistent!
+	printf("[XX] sig good!\n");
+	result = LDNS_STATUS_OK;
+
+	cleanup:
+	fflush(stdout);
+	fflush(stderr);
+	if (mHash != NULL) { free(mHash); }
+	if (maskedDB != NULL) { free(maskedDB); }
+	if (H != NULL) { free(H); }
+	if (dbMask != NULL) { free(dbMask); }
+	if (salt != NULL) { free(salt); }
+	if (MM != NULL) { free(MM); }
+	if (HH != NULL) { free(HH); }
+
+	return result;
 }

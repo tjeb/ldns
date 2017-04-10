@@ -46,4 +46,6 @@ test_sign_newkey() {
 
 # generate keys
 #test_sign_newkey RSASHA3_256 1024
-test_sign_existingkey rsasha3_256 sha3_256_key ref_rsasha3_256_example.org.signed
+test_sign_existingkey rsasha3_256 key_sha3_256 ref_rsasha3_256_example.org.signed
+test_sign_existingkey rsasha3_384 key_sha3_384 ref_rsasha3_384_example.org.signed
+test_sign_existingkey rsasha3_512 key_sha3_512 ref_rsasha3_512_example.org.signed

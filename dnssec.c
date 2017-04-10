@@ -2079,10 +2079,12 @@ ldns_digest_length(ldns_signing_algorithm algorithm)
 		return LDNS_SHA1_DIGEST_LENGTH;
 	case LDNS_SIGN_RSASHA256:
 	case LDNS_SIGN_ECDSAP256SHA256:
+	case LDNS_SIGN_RSASHA2_256:
 	case LDNS_SIGN_RSASHA3_256:
 	case LDNS_SIGN_HMACSHA256:
 		return LDNS_SHA256_DIGEST_LENGTH;
 	case LDNS_SIGN_RSASHA512:
+	case LDNS_SIGN_RSASHA2_512:
 	case LDNS_SIGN_RSASHA3_512:
 	case LDNS_SIGN_HMACSHA512:
 		return LDNS_SHA512_DIGEST_LENGTH;
@@ -2114,8 +2116,10 @@ ldns_digest_raw(const unsigned char* data,
 	case LDNS_SIGN_RSASHA1_NSEC3:
 		return ldns_sha1(data, data_len, dest);
 	case LDNS_SIGN_RSASHA256:
+	case LDNS_SIGN_RSASHA2_256:
 		return ldns_sha256(data, data_len, dest);
 	case LDNS_SIGN_RSASHA512:
+	case LDNS_SIGN_RSASHA2_512:
 		return ldns_sha512(data, data_len, dest);
 	case LDNS_SIGN_RSASHA3_256:
 		return ldns_sha3_256(data, data_len, dest);

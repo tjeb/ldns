@@ -202,10 +202,12 @@ ldns_sign_public_buffer(ldns_buffer *sign_buf, ldns_key *current_key)
 				   EVP_md5());
 		break;
 #ifdef USE_SHA3
+	case LDNS_SIGN_RSASHA2_256:
+	case LDNS_SIGN_RSASHA2_512:
 	case LDNS_SIGN_RSASHA3_256:
 	case LDNS_SIGN_RSASHA3_384:
 	case LDNS_SIGN_RSASHA3_512:
-		b64rdf = ldns_sign_public_rsasha3(sign_buf,
+		b64rdf = ldns_sign_public_rsa_pss(sign_buf,
 		              ldns_key_evp_key(current_key),
 		              ldns_key_algorithm(current_key));
 		break;
@@ -630,7 +632,7 @@ ldns_sign_public_rsamd5(ldns_buffer *to_sign, RSA *key)
 #endif /* HAVE_SSL */
 
 ldns_rdf *
-ldns_sign_public_rsasha3(ldns_buffer *M, EVP_PKEY *key, ldns_signing_algorithm algorithm)
+ldns_sign_public_rsa_pss(ldns_buffer *M, EVP_PKEY *key, ldns_signing_algorithm algorithm)
 {
 	RSA* rsa_key;
 	unsigned int keysize;

@@ -1,10 +1,10 @@
 /*
  * modified for ldns by Jelte Jansen, original taken from OpenBSD:
- * 
+ *
  * SHA-1 in C
  * By Steve Reid <steve@edmweb.com>
  * 100% Public Domain
- * 
+ *
  * Test Vectors (from FIPS PUB 180-1)
  * "abc"
  *   A9993E36 4706816A BA3E2571 7850C26C 9CD0D89D
@@ -167,8 +167,11 @@ ldns_sha1_final(unsigned char digest[LDNS_SHA1_DIGEST_LENGTH], ldns_sha1_ctx *co
 }
 
 unsigned char *
-ldns_sha1(unsigned char *data, unsigned int data_len, unsigned char *digest)
+ldns_sha1(const unsigned char *data, unsigned int data_len, unsigned char *digest)
 {
+    if (digest == NULL) {
+        digest = (unsigned char*) malloc(LDNS_SHA1_DIGEST_LENGTH);
+    }
     ldns_sha1_ctx ctx;
     ldns_sha1_init(&ctx);
     ldns_sha1_update(&ctx, data, data_len);

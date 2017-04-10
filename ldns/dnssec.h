@@ -156,14 +156,19 @@ int ldns_digest_evp(const unsigned char* data, unsigned int len,
 
 /**
  * Utility function to retrieve the digest length of digest algorithms
+ * associated with the given signing algorithm
+ *
  * \param[in] algorithm the algorithm to retrieve the digest length of
  * \return The length of the digest of the given algorithm, or 0 if the
  *         algorithm is unknown or has no associated digest
  */
-unsigned int ldns_digest_length(ldns_algorithm algorithm);
+unsigned int ldns_digest_length(ldns_signing_algorithm algorithm);
 
 /**
- * Utility function to perform a digest operation on raw binary data
+ * Utility function to perform a digest operation on raw binary data,
+ * using the digest algorithm associated with the given signing
+ * algorithm (e.g. SHA256 when given LDNS_SIGN_RSASHA256)
+ *
  * \param[in] data the data to digest
  * \param[in] data_len the length of the data
  * \param[out] dest the destination of the hash. If NULL, data will
@@ -177,7 +182,7 @@ unsigned char* ldns_digest_raw(const unsigned char* data,
                                const unsigned int data_len,
                                unsigned char* dest,
                                unsigned int* digest_len,
-                               ldns_algorithm algorithm);
+                               ldns_signing_algorithm algorithm);
 
 /**
  * Converts a holding buffer with key material to EVP PKEY in openssl.

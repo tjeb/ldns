@@ -1985,6 +1985,8 @@ ldns_key2buffer_str(ldns_buffer *output, const ldns_key *k)
 			case LDNS_SIGN_RSASHA1_NSEC3:
 			case LDNS_SIGN_RSASHA256:
 			case LDNS_SIGN_RSASHA512:
+			case LDNS_SIGN_RSASHA2_256:
+			case LDNS_SIGN_RSASHA2_512:
 			case LDNS_SIGN_RSASHA3_256:
 			case LDNS_SIGN_RSASHA3_384:
 			case LDNS_SIGN_RSASHA3_512:
@@ -2154,6 +2156,9 @@ ldns_key2buffer_str(ldns_buffer *output, const ldns_key *k)
 				break;
 			case LDNS_SIGN_ECDSAP256SHA256:
 			case LDNS_SIGN_ECDSAP384SHA384:
+			// these two are likely wrong (TODO Jelte XX)
+			case LDNS_SIGN_ECDSAP256SHA3_256:
+			case LDNS_SIGN_ECDSAP384SHA3_384:
 #ifdef USE_ECDSA
                                 ldns_buffer_printf(output, "Private-key-format: v1.2\n");
 				ldns_buffer_printf(output, "Algorithm: %d (", ldns_key_algorithm(k));

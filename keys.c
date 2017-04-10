@@ -52,6 +52,10 @@ ldns_lookup_table ldns_signing_algorithms[] = {
         { LDNS_SIGN_HMACSHA384, "hmac-sha384" },
         { LDNS_SIGN_HMACSHA512, "hmac-sha512" },
 #ifdef USE_SHA3
+        { LDNS_ECDSAP256SHA3_256, "ECDSAP256SHA3-256" },
+        { LDNS_ECDSAP384SHA3_384, "ECDSAP384SHA3-384" },
+        { LDNS_RSASHA2_256, "RSASHA2-256" },
+        { LDNS_RSASHA2_512, "RSASHA2-512" },
         { LDNS_SIGN_RSASHA3_256, "RSASHA3_256" },
         { LDNS_SIGN_RSASHA3_384, "RSASHA3_384" },
         { LDNS_SIGN_RSASHA3_512, "RSASHA3_512" },
@@ -620,7 +624,48 @@ ldns_key_new_frm_fp_l(ldns_key **key, FILE *fp, int *line_nr)
 #endif
         }
 
-	if (strncmp(d, "249 RSASHA3_256", 4) == 0) {
+	if (strncmp(d, "245 ECDSAP256SHA3-256", 4) == 0) {
+#ifdef USE_SHA3
+                alg = LDNS_SIGN_ECDSAP256SHA3_256;
+#else
+# ifdef STDERR_MSGS
+		fprintf(stderr, "Warning: SHA3 not compiled into this ");
+		fprintf(stderr, "version of ldns, use --enable-sha3\n");
+# endif
+#endif
+        }
+	if (strncmp(d, "246 ECDSAP384SHA3-384", 4) == 0) {
+#ifdef USE_SHA3
+                alg = LDNS_SIGN_ECDSAP384SHA3_384;
+#else
+# ifdef STDERR_MSGS
+		fprintf(stderr, "Warning: SHA3 not compiled into this ");
+		fprintf(stderr, "version of ldns, use --enable-sha3\n");
+# endif
+#endif
+        }
+	if (strncmp(d, "247 RSASHA2-256", 4) == 0) {
+#ifdef USE_SHA3
+                alg = LDNS_SIGN_RSASHA2_256;
+#else
+# ifdef STDERR_MSGS
+		fprintf(stderr, "Warning: SHA3 not compiled into this ");
+		fprintf(stderr, "version of ldns, use --enable-sha3\n");
+# endif
+#endif
+        }
+	if (strncmp(d, "248 RSASHA2-512", 4) == 0) {
+#ifdef USE_SHA3
+                alg = LDNS_SIGN_RSASHA2_512;
+#else
+# ifdef STDERR_MSGS
+		fprintf(stderr, "Warning: SHA3 not compiled into this ");
+		fprintf(stderr, "version of ldns, use --enable-sha3\n");
+# endif
+#endif
+        }
+
+	if (strncmp(d, "249 RSASHA3-256", 4) == 0) {
 #ifdef USE_SHA3
                 alg = LDNS_SIGN_RSASHA3_256;
 #else
@@ -630,7 +675,7 @@ ldns_key_new_frm_fp_l(ldns_key **key, FILE *fp, int *line_nr)
 # endif
 #endif
         }
-	if (strncmp(d, "250 RSASHA3_384", 4) == 0) {
+	if (strncmp(d, "250 RSASHA3-384", 4) == 0) {
 #ifdef USE_SHA3
                 alg = LDNS_SIGN_RSASHA3_384;
 #else
@@ -640,7 +685,7 @@ ldns_key_new_frm_fp_l(ldns_key **key, FILE *fp, int *line_nr)
 # endif
 #endif
         }
-	if (strncmp(d, "251 RSASHA3_512", 4) == 0) {
+	if (strncmp(d, "251 RSASHA3-512", 4) == 0) {
 #ifdef USE_SHA3
                 alg = LDNS_SIGN_RSASHA3_512;
 #else
@@ -688,6 +733,8 @@ ldns_key_new_frm_fp_l(ldns_key **key, FILE *fp, int *line_nr)
 		case LDNS_SIGN_RSASHA512:
 #endif
 #ifdef USE_SHA3
+		case LDNS_SIGN_RSASHA2_256:
+		case LDNS_SIGN_RSASHA2_512:
 		case LDNS_SIGN_RSASHA3_256:
 		case LDNS_SIGN_RSASHA3_384:
 		case LDNS_SIGN_RSASHA3_512:
@@ -753,6 +800,9 @@ ldns_key_new_frm_fp_l(ldns_key **key, FILE *fp, int *line_nr)
 #ifdef USE_ECDSA
                case LDNS_SIGN_ECDSAP256SHA256:
                case LDNS_SIGN_ECDSAP384SHA384:
+               // these are likely wrong (TODO Jelte XX)
+               case LDNS_SIGN_ECDSAP256SHA3_256:
+               case LDNS_SIGN_ECDSAP384SHA3_384:
                         ldns_key_set_algorithm(k, alg);
                         ldns_key_set_evp_key(k,
                                 ldns_key_new_frm_fp_ecdsa_l(fp, (ldns_algorithm)alg, line_nr));
@@ -1197,6 +1247,8 @@ ldns_key_new_frm_algorithm(ldns_signing_algorithm alg, uint16_t size)
 		case LDNS_SIGN_RSASHA1_NSEC3:
 		case LDNS_SIGN_RSASHA256:
 		case LDNS_SIGN_RSASHA512:
+		case LDNS_SIGN_RSASHA2_256:
+		case LDNS_SIGN_RSASHA2_512:
 		case LDNS_SIGN_RSASHA3_256:
 		case LDNS_SIGN_RSASHA3_384:
 		case LDNS_SIGN_RSASHA3_512:
@@ -1327,6 +1379,8 @@ ldns_key_new_frm_algorithm(ldns_signing_algorithm alg, uint16_t size)
                         break;
                 case LDNS_SIGN_ECDSAP256SHA256:
                 case LDNS_SIGN_ECDSAP384SHA384:
+                case LDNS_SIGN_ECDSAP256SHA3_256:
+                case LDNS_SIGN_ECDSAP384SHA3_384:
 #ifdef USE_ECDSA
                         if(alg == LDNS_SIGN_ECDSAP256SHA256)
                                 ec = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1);
@@ -1920,6 +1974,8 @@ ldns_key2rr(const ldns_key *k)
 		case LDNS_SIGN_RSASHA1_NSEC3:
 		case LDNS_SIGN_RSASHA256:
 		case LDNS_SIGN_RSASHA512:
+		case LDNS_SIGN_RSASHA2_256:
+		case LDNS_SIGN_RSASHA2_512:
 		case LDNS_SIGN_RSASHA3_256:
 		case LDNS_SIGN_RSASHA3_384:
 		case LDNS_SIGN_RSASHA3_512:
@@ -2014,6 +2070,8 @@ ldns_key2rr(const ldns_key *k)
 			break;
                 case LDNS_SIGN_ECDSAP256SHA256:
                 case LDNS_SIGN_ECDSAP384SHA384:
+                case LDNS_SIGN_ECDSAP256SHA3_256:
+                case LDNS_SIGN_ECDSAP384SHA3_384:
 #ifdef USE_ECDSA
 			ldns_rr_push_rdf(pubkey, ldns_native2rdf_int8(
 				LDNS_RDF_TYPE_ALG, ldns_key_algorithm(k)));

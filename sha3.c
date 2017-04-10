@@ -559,6 +559,7 @@ emsa_pss_encode(unsigned char* M, unsigned int M_len, unsigned int emBits, unsig
 	mHash = sha3_digest(M, M_len, algorithm, &mHash_len);
 	// TODO: check NULL
 	salt_len = mHash_len;
+	printf("[XX] salt len: %u\n", salt_len);
 
 	//3.   If EM_len < hLen + sLen + 2, output "encoding error" and stop.
 	// do we know intended EM_len?
@@ -573,7 +574,7 @@ emsa_pss_encode(unsigned char* M, unsigned int M_len, unsigned int emBits, unsig
 
 	// fixed salt for now
 	salt = (char*) malloc(salt_len);
-	memset(salt, 0, salt_len);
+	memset(salt, 0x00, salt_len);
 
 	//5.   Let
 	//       M' = (0x)00 00 00 00 00 00 00 00 || mHash || salt;
@@ -839,4 +840,20 @@ emsa_pss_verify(unsigned char* M, unsigned int M_len,
 	if (HH != NULL) { free(HH); }
 
 	return result;
+}
+
+void dotests(void) {
+    const char* data = "abc";
+    unsigned int data_len = 3;
+    unsigned char* digest;
+    unsigned int digest_len;
+    digest = sha3_digest((unsigned char*)data, data_len, LDNS_SIGN_RSASHA3_256, &digest_len);
+    hexdump(stdout, "SHA3_256_TEST", digest, digest_len);
+    free(digest);
+    digest = sha3_digest((unsigned char*)data, data_len, LDNS_SIGN_RSASHA3_384, &digest_len);
+    hexdump(stdout, "SHA3_384_TEST", digest, digest_len);
+    free(digest);
+    digest = sha3_digest((unsigned char*)data, data_len, LDNS_SIGN_RSASHA3_512, &digest_len);
+    hexdump(stdout, "SHA3_512_TEST", digest, digest_len);
+    free(digest);
 }

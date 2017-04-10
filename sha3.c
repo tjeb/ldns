@@ -3,7 +3,12 @@
  * The Keccak SHA-3 submission. Submission to NIST (Round 3), 2011
  * by Guido Bertoni, Joan Daemen, Michaël Peeters and Gilles Van Assche
  *
- * Copyright: 2013 Aleksey Kravchenko <rhash.admin@gmail.com>
+ * This file is taken from RHash; https://github.com/rhash
+ *
+ * There are some small modifications to fit into the ldns library
+ * by Jelte Jansen (2017)
+ *
+ * Copyright (c) 2005-2014 Aleksey Kravchenko <rhash.admin@gmail.com>
  *
  * Permission is hereby granted,  free of charge,  to any person  obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -357,22 +362,20 @@ void rhash_keccak_final(sha3_ctx *ctx, unsigned char* result)
 #endif /* USE_KECCAK */
 
 unsigned char *
-ldns_sha3_256(unsigned char *data, unsigned int data_len, unsigned char *digest)
+ldns_sha3_256(const unsigned char *data, unsigned int data_len, unsigned char *digest)
 {
     sha3_ctx ctx;
     if (digest == NULL) {
         digest = (unsigned char*) malloc(LDNS_SHA3_256_DIGEST_LENGTH);
     }
-    printf("[XX] digesting data\n");
     rhash_sha3_256_init(&ctx);
     rhash_sha3_update(&ctx, data, data_len);
     rhash_sha3_final(&ctx, digest);
-    printf("[XX] done digesting data\n");
     return digest;
 }
 
 unsigned char *
-ldns_sha3_384(unsigned char *data, unsigned int data_len, unsigned char *digest)
+ldns_sha3_384(const unsigned char *data, unsigned int data_len, unsigned char *digest)
 {
     sha3_ctx ctx;
     if (digest == NULL) {
@@ -385,7 +388,7 @@ ldns_sha3_384(unsigned char *data, unsigned int data_len, unsigned char *digest)
 }
 
 unsigned char *
-ldns_sha3_512(unsigned char *data, unsigned int data_len, unsigned char *digest)
+ldns_sha3_512(const unsigned char *data, unsigned int data_len, unsigned char *digest)
 {
     sha3_ctx ctx;
     if (digest == NULL) {

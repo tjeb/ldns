@@ -666,9 +666,6 @@ ldns_key_rr2ds(const ldns_rr *key, ldns_hash h)
 		(void) ldns_sha256((unsigned char *) ldns_buffer_begin(data_buf),
 		                   (unsigned int) ldns_buffer_position(data_buf),
 		                   (unsigned char *) digest);
-printf("[XX] sha2 digest length %u\n", LDNS_SHA3_256_DIGEST_LENGTH);
-printf("[XX] sha2 digest at %p\n", digest);
-fflush(stdout);
 		tmp = ldns_rdf_new_frm_data(LDNS_RDF_TYPE_HEX,
 		                            LDNS_SHA256_DIGEST_LENGTH,
 		                            digest);
@@ -676,22 +673,13 @@ fflush(stdout);
 		break;
 	case LDNS_SHA3_256:
 #ifdef USE_SHA3
-printf("[XX] yo1!\n");
-fflush(stdout);
 		(void) ldns_sha3_256((unsigned char *) ldns_buffer_begin(data_buf),
 		                     (unsigned int) ldns_buffer_position(data_buf),
 		                     (unsigned char *) digest);
-printf("[XX] sha3 digest length %u\n", LDNS_SHA3_256_DIGEST_LENGTH);
-printf("[XX] sha3 digest at %p\n", digest);
-fflush(stdout);
 		tmp = ldns_rdf_new_frm_data(LDNS_RDF_TYPE_HEX,
 		                            LDNS_SHA3_256_DIGEST_LENGTH,
 		                            digest);
-printf("[XX] yo3\n");
-fflush(stdout);
 		ldns_rr_push_rdf(ds, tmp);
-printf("[XX] yo4\n");
-fflush(stdout);
 #endif
 		break;
 	case LDNS_SHA3_384:
@@ -2108,16 +2096,13 @@ ldns_digest_raw(const unsigned char* data,
 	}
 	switch (algorithm) {
 	case LDNS_SIGN_RSASHA3_256:
-		printf("[XX] sha3 256\n");
-		return ldns_sha3_256(data, data_len, NULL);
+		return ldns_sha3_256(data, data_len, dest);
 		break;
 	case LDNS_SIGN_RSASHA3_384:
-		printf("[XX] sha3 384\n");
-		return ldns_sha3_384(data, data_len, NULL);
+		return ldns_sha3_384(data, data_len, dest);
 		break;
 	case LDNS_SIGN_RSASHA3_512:
-		printf("[XX] sha3 512\n");
-		return ldns_sha3_512(data, data_len, NULL);
+		return ldns_sha3_512(data, data_len, dest);
 		break;
 	default:
 		fprintf(stderr, "Error: called ldns_sign_public_rsasha3 without rsasha3 algorithm\n");

@@ -1,7 +1,6 @@
 /* byte_order.h */
 #ifndef BYTE_ORDER_H
 #define BYTE_ORDER_H
-#include "ustd.h"
 #include <stdlib.h>
 
 #ifdef IN_RHASH
@@ -169,4 +168,3 @@ static inline uint64_t bswap_64(uint64_t x) {
 #endif /* __cplusplus */
 
 #endif /* BYTE_ORDER_H */
-

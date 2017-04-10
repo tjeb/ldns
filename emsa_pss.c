@@ -51,6 +51,7 @@ MGF(unsigned char* mgfSeed, unsigned int mgfSeed_len, unsigned int maskLen, ldns
 	return result;
 }
 
+/*
 static inline void
 hexdump(FILE*out, const char* str, unsigned char* data, unsigned int data_len) {
 	fflush(stdout);
@@ -67,6 +68,7 @@ hexdump(FILE*out, const char* str, unsigned char* data, unsigned int data_len) {
 	fflush(stdout);
 	fflush(stderr);
 }
+*/
 
 unsigned char*
 emsa_pss_encode(unsigned char* M, unsigned int M_len, unsigned int emBits, unsigned int* emLen, ldns_algorithm algorithm)
@@ -121,7 +123,6 @@ emsa_pss_encode(unsigned char* M, unsigned int M_len, unsigned int emBits, unsig
 	mHash = ldns_digest_raw(M, M_len, NULL, &mHash_len, algorithm);
 	// TODO: check NULL
 	salt_len = mHash_len;
-	printf("[XX] salt len: %u\n", salt_len);
 
 	//3.   If EM_len < hLen + sLen + 2, output "encoding error" and stop.
 	// do we know intended EM_len?
@@ -154,7 +155,6 @@ emsa_pss_encode(unsigned char* M, unsigned int M_len, unsigned int emBits, unsig
 	//7.   Generate an octet string PS consisting of EM_len - sLen - hLen
 	//     - 2 zero octets.  The length of PS may be 0.
 	PS_len = EM_len - salt_len - H_len - 2;
-	printf("[XX] PS size: %d\n", PS_len);
 	PS = (unsigned char*) malloc(PS_len);
 	memset(PS, 0, PS_len);
 
@@ -183,16 +183,10 @@ emsa_pss_encode(unsigned char* M, unsigned int M_len, unsigned int emBits, unsig
 
 	//11.  Set the leftmost 8EM_len - emBits bits of the leftmost octet
 	//     in maskedDB to zero.
-	printf("[XX] Byte zero: %02x\n", maskedDB[0]);
 	maskedDB[0] = maskedDB[0] << (EM_len*8 - emBits);
 	maskedDB[0] = maskedDB[0] >> (EM_len*8 - emBits);
-	printf("[XX] Byte zero: %02x\n", maskedDB[0]);
 
 	//12.  Let EM = maskedDB || H || 0xbc.
-	printf("[XX] EM_len: %u\n", EM_len);
-	printf("[XX] emBits: %u\n", emBits);
-	printf("[XX] maskedDBlen: %u\n", maskedDB_len);
-	printf("[XX] H_len: %u\n", H_len);
 	// sanity check
 	if (EM_len != maskedDB_len + H_len + 1) {
 	    fprintf(stderr, "Error in PSS algorithm; sizes do not match up\n");
@@ -206,8 +200,6 @@ emsa_pss_encode(unsigned char* M, unsigned int M_len, unsigned int emBits, unsig
 	if (emLen != NULL) {
 		*emLen = EM_len;
 	}
-
-	hexdump(stderr, "EM", EM, EM_len);
 
 	cleanup:
 	if (mHash != NULL) { free(mHash); }
@@ -282,8 +274,6 @@ emsa_pss_verify(unsigned char* M, unsigned int M_len,
 		goto cleanup;
 	}
 
-	hexdump(stderr, "EM", EM, EM_len);
-
     // 4.   If the rightmost octet of EM does not have hexadecimal value
     //      0xbc, output "inconsistent" and stop.
     if (EM[EM_len-1] != 0xbc) {
@@ -304,7 +294,6 @@ emsa_pss_verify(unsigned char* M, unsigned int M_len,
     //      maskedDB are not all equal to zero, output "inconsistent" and
     //      stop.
     zeroBits = 8 * EM_len - emBits;
-    printf("[XX] zerobits: %u\n", zeroBits);
     if (maskedDB[0] >> (8-zeroBits) != 0x00) {
 		fprintf(stderr, "leftmost %u bits of maskedDB are not zero\n", zeroBits);
 		goto cleanup;
@@ -322,10 +311,8 @@ emsa_pss_verify(unsigned char* M, unsigned int M_len,
 
     // 9.   Set the leftmost 8emLen - emBits bits of the leftmost octet
     //      in DB to zero.
-	printf("[XX] Byte zero: %02x\n", DB[0]);
 	DB[0] = DB[0] << (EM_len*8 - emBits);
 	DB[0] = DB[0] >> (EM_len*8 - emBits);
-	printf("[XX] Byte zero: %02x\n", DB[0]);
 
     // 10.  If the emLen - hLen - sLen - 2 leftmost octets of DB are not
     //      zero or if the octet at position emLen - hLen - sLen - 1 (the
@@ -339,26 +326,17 @@ emsa_pss_verify(unsigned char* M, unsigned int M_len,
 		}
 	}
 
-	printf("[XX] EM_len: %u\n", EM_len);
-	printf("[XX] EM_len: %u\n", EM_len);
-	printf("[XX] H_len: %u\n", H_len);
-	printf("[XX] salt_len: %u\n", salt_len);
-
 	oneOctet_pos = EM_len - H_len - salt_len - 1;
 	if (DB[oneOctet_pos -1] != 0x01) {
 		fprintf(stderr, "octet at %u not 0x01 (0x%02x)\n", oneOctet_pos, DB[oneOctet_pos-1]);
 		goto cleanup;
 	}
 
-	hexdump(stderr, "DB", DB, DB_len);
-
     // 11.  Let salt be the last sLen octets of DB.
 	salt = (unsigned char*) malloc(salt_len);
 	memcpy(salt, DB + DB_len - salt_len, salt_len);
 
-	hexdump(stderr, "Salt", salt, salt_len);
     // 12.  Let
-
     //         M' = (0x)00 00 00 00 00 00 00 00 || mHash || salt ;
     //      M' is an octet string of length 8 + hLen + sLen with eight
     //      initial zero octets.
@@ -371,8 +349,6 @@ emsa_pss_verify(unsigned char* M, unsigned int M_len,
     // 13.  Let H' = Hash(M'), an octet string of length hLen.
     HH = ldns_digest_raw(MM, MM_len, NULL, &HH_len, algorithm);
 
-	hexdump(stderr, "MM", MM, MM_len);
-
     // 14.  If H = H', output "consistent".  Otherwise, output
     //      "inconsistent".
     if (HH_len != H_len) {
@@ -381,13 +357,10 @@ emsa_pss_verify(unsigned char* M, unsigned int M_len,
 	}
     if (memcmp(H, HH, HH_len) != 0) {
 		fprintf(stderr, "Error: H' and H do not match\n");
-		hexdump(stderr, "H", H, H_len);
-		hexdump(stderr, "HH", HH, HH_len);
 		goto cleanup;
 	}
 
 	// consistent!
-	printf("[XX] sig good!\n");
 	result = LDNS_STATUS_OK;
 
 	cleanup:
@@ -402,20 +375,4 @@ emsa_pss_verify(unsigned char* M, unsigned int M_len,
 	if (HH != NULL) { free(HH); }
 
 	return result;
-}
-
-void dotests(void) {
-    const char* data = "abc";
-    unsigned int data_len = 3;
-    unsigned char* digest;
-    unsigned int digest_len;
-    digest = ldns_digest_raw((unsigned char*)data, data_len, NULL, &digest_len, LDNS_SIGN_RSASHA3_256);
-    hexdump(stdout, "SHA3_256_TEST", digest, digest_len);
-    free(digest);
-    digest = ldns_digest_raw((unsigned char*)data, data_len, NULL, &digest_len, LDNS_SIGN_RSASHA3_384);
-    hexdump(stdout, "SHA3_384_TEST", digest, digest_len);
-    free(digest);
-    digest = ldns_digest_raw((unsigned char*)data, data_len, NULL, &digest_len, LDNS_SIGN_RSASHA3_512);
-    hexdump(stdout, "SHA3_512_TEST", digest, digest_len);
-    free(digest);
 }

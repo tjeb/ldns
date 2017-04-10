@@ -203,16 +203,11 @@ ldns_sign_public_buffer(ldns_buffer *sign_buf, ldns_key *current_key)
 		break;
 #ifdef USE_SHA3
 	case LDNS_SIGN_RSASHA3_256:
-//		b64rdf = ldns_sign_public_rsasha3_256(
-//				   sign_buf,
-//				   ldns_key_evp_key(current_key));
-//		break;
 	case LDNS_SIGN_RSASHA3_384:
 	case LDNS_SIGN_RSASHA3_512:
-		b64rdf = ldns_sign_public_rsasha3(
-				   sign_buf,
-				   ldns_key_evp_key(current_key),
-				   ldns_key_algorithm(current_key));
+		b64rdf = ldns_sign_public_rsasha3(sign_buf,
+		              ldns_key_evp_key(current_key),
+		              ldns_key_algorithm(current_key));
 		break;
 #endif
 	default:
@@ -651,14 +646,17 @@ ldns_sign_public_rsasha3(ldns_buffer *M, EVP_PKEY *key, ldns_signing_algorithm a
 	rsa_key = EVP_PKEY_get1_RSA(key);
 	keysize = RSA_size(rsa_key);
 
-	EM = emsa_pss_encode(ldns_buffer_begin(M), ldns_buffer_position(M), (keysize*8)-1, &emLen, algorithm);
+	EM = emsa_pss_encode(ldns_buffer_begin(M),
+	                     ldns_buffer_position(M),
+	                     (keysize*8)-1,
+	                     &emLen,
+	                     algorithm);
 
-	// phew. Now sign that.
 	sig = (unsigned char*)malloc(keysize);
 	sig_len = RSA_private_encrypt(emLen, EM, sig, rsa_key, RSA_NO_PADDING);
 	if (sig_len != (int)keysize) {
-	    fprintf(stderr, "Error in RSA signing; signature size seems wrong (got %d, expected %u)\n", sig_len, keysize);
-	    goto cleanup;
+		fprintf(stderr, "Error in RSA signing; signature size seems wrong (got %d, expected %u)\n", sig_len, keysize);
+		goto cleanup;
 	}
 
 	//13.  Output EM.

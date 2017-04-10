@@ -2076,4 +2076,54 @@ ldns_convert_ed448_rrsig_rdf2asn1(ldns_buffer *target_buffer,
 }
 #endif /* USE_ED448 */
 
+unsigned int
+ldns_digest_length(ldns_algorithm algorithm)
+{
+	switch (algorithm) {
+#ifdef USE_SHA3
+	case LDNS_SIGN_RSASHA3_256:
+		return LDNS_SHA3_256_DIGEST_LENGTH;
+		break;
+	case LDNS_SIGN_RSASHA3_384:
+		return LDNS_SHA3_384_DIGEST_LENGTH;
+		break;
+	case LDNS_SIGN_RSASHA3_512:
+		return LDNS_SHA3_512_DIGEST_LENGTH;
+		break;
+#endif // USE_SHA3
+	default:
+		fprintf(stderr, "Error: called ldns_digest_length without rsasha3 algorithm\n");
+		return 0;
+	}
+}
+
+unsigned char*
+ldns_digest_raw(const unsigned char* data,
+                const unsigned int data_len,
+                unsigned char* dest,
+                unsigned int* digest_len,
+                ldns_algorithm algorithm) {
+	if (digest_len != NULL) {
+		*digest_len = ldns_digest_length(algorithm);
+	}
+	switch (algorithm) {
+	case LDNS_SIGN_RSASHA3_256:
+		printf("[XX] sha3 256\n");
+		return ldns_sha3_256(data, data_len, NULL);
+		break;
+	case LDNS_SIGN_RSASHA3_384:
+		printf("[XX] sha3 384\n");
+		return ldns_sha3_384(data, data_len, NULL);
+		break;
+	case LDNS_SIGN_RSASHA3_512:
+		printf("[XX] sha3 512\n");
+		return ldns_sha3_512(data, data_len, NULL);
+		break;
+	default:
+		fprintf(stderr, "Error: called ldns_sign_public_rsasha3 without rsasha3 algorithm\n");
+		return NULL;
+	}
+}
+
+
 #endif /* HAVE_SSL */

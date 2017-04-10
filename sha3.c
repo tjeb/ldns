@@ -398,32 +398,12 @@ ldns_sha3_512(unsigned char *data, unsigned int data_len, unsigned char *digest)
 }
 
 // PSS-related functions
-// for SHA3 we need to digest twice, so we have a helper function to
-// keep the PSS algorithm more readable
-unsigned int
-sha3_digest_len(ldns_algorithm algorithm)
-{
-	switch (algorithm) {
-	case LDNS_SIGN_RSASHA3_256:
-		return LDNS_SHA3_256_DIGEST_LENGTH;
-		break;
-	case LDNS_SIGN_RSASHA3_384:
-		return LDNS_SHA3_384_DIGEST_LENGTH;
-		break;
-	case LDNS_SIGN_RSASHA3_512:
-		return LDNS_SHA3_512_DIGEST_LENGTH;
-		break;
-	default:
-		fprintf(stderr, "Error: called sha3_digest_len without rsasha3 algorithm\n");
-		return 0;
-	}
-}
-
+/*
 unsigned char*
-sha3_digest(unsigned char* data, unsigned int data_len, ldns_algorithm algorithm, unsigned int* digest_len)
+ldns_digest_raw(unsigned char* data, unsigned int data_len, ldns_algorithm algorithm, unsigned int* digest_len)
 {
 	if (digest_len != NULL) {
-		*digest_len = sha3_digest_len(algorithm);
+		*digest_len = ldns_digest_length(algorithm);
 	}
 	switch (algorithm) {
 	case LDNS_SIGN_RSASHA3_256:
@@ -443,7 +423,7 @@ sha3_digest(unsigned char* data, unsigned int data_len, ldns_algorithm algorithm
 		return NULL;
 	}
 }
-
+*/
 void I2OSP(unsigned char* output, unsigned int X, unsigned int xLen)
 {
 	unsigned int i;
@@ -460,7 +440,7 @@ MGF(unsigned char* mgfSeed, unsigned int mgfSeed_len, unsigned int maskLen, ldns
 	(void)mgfSeed;
 	(void)algorithm;
 
-	unsigned int digest_len = sha3_digest_len(algorithm);
+	unsigned int digest_len = ldns_digest_length(algorithm);
 	unsigned int counter;
 	unsigned int steps = (maskLen / digest_len);
 	unsigned char* tmpseed;
@@ -478,7 +458,7 @@ MGF(unsigned char* mgfSeed, unsigned int mgfSeed_len, unsigned int maskLen, ldns
 
 	for (counter = 0; counter < steps; counter++) {
 	    I2OSP(tmpseed + mgfSeed_len, counter, 4);
-	    digest = sha3_digest(tmpseed, mgfSeed_len + 4, algorithm, NULL);
+	    digest = ldns_digest_raw(tmpseed, mgfSeed_len + 4, NULL, NULL, algorithm);
 	    memcpy(tmpdata + counter*digest_len, digest, digest_len);
 	    free(digest);
 	}
@@ -556,7 +536,7 @@ emsa_pss_encode(unsigned char* M, unsigned int M_len, unsigned int emBits, unsig
 	// ignore length for now, should be OK
 
 	//2.   Let mHash = Hash(M), an octet string of length hLen.
-	mHash = sha3_digest(M, M_len, algorithm, &mHash_len);
+	mHash = ldns_digest_raw(M, M_len, NULL, &mHash_len, algorithm);
 	// TODO: check NULL
 	salt_len = mHash_len;
 	printf("[XX] salt len: %u\n", salt_len);
@@ -587,7 +567,7 @@ emsa_pss_encode(unsigned char* M, unsigned int M_len, unsigned int emBits, unsig
 	memcpy(MM+8+mHash_len, salt, salt_len);
 
 	//6.   Let H = Hash(M'), an octet string of length hLen.
-	H = sha3_digest(MM, MM_len, algorithm, &H_len);
+	H = ldns_digest_raw(MM, MM_len, NULL, &H_len, algorithm);
 
 	//7.   Generate an octet string PS consisting of EM_len - sLen - hLen
 	//     - 2 zero octets.  The length of PS may be 0.
@@ -711,10 +691,10 @@ emsa_pss_verify(unsigned char* M, unsigned int M_len,
     //      "inconsistent" and stop.
 
     // 2.   Let mHash = Hash(M), an octet string of length hLen.
-    mHash = sha3_digest(M, M_len, algorithm, &mHash_len);
+    mHash = ldns_digest_raw(M, M_len, NULL, &mHash_len, algorithm);
 
     // 3.   If emLen < hLen + sLen + 2, output "inconsistent" and stop.
-    salt_len = sha3_digest_len(algorithm);
+    salt_len = ldns_digest_length(algorithm);
     if (EM_len < mHash_len + salt_len + 2) {
 		fprintf(stderr, "EM len wrong\n");
 		goto cleanup;
@@ -731,7 +711,7 @@ emsa_pss_verify(unsigned char* M, unsigned int M_len,
 
     // 5.   Let maskedDB be the leftmost emLen - hLen - 1 octets of EM,
     //      and let H be the next hLen octets.
-    H_len = sha3_digest_len(algorithm);
+    H_len = ldns_digest_length(algorithm);
     maskedDB_len = EM_len - H_len - 1;
     maskedDB = (unsigned char*) malloc(maskedDB_len);
     memcpy(maskedDB, EM, maskedDB_len);
@@ -807,7 +787,7 @@ emsa_pss_verify(unsigned char* M, unsigned int M_len,
 	memcpy(MM + 8 + mHash_len, salt, salt_len);
 
     // 13.  Let H' = Hash(M'), an octet string of length hLen.
-    HH = sha3_digest(MM, MM_len, algorithm, &HH_len);
+    HH = ldns_digest_raw(MM, MM_len, NULL, &HH_len, algorithm);
 
 	hexdump(stderr, "MM", MM, MM_len);
 
@@ -847,13 +827,13 @@ void dotests(void) {
     unsigned int data_len = 3;
     unsigned char* digest;
     unsigned int digest_len;
-    digest = sha3_digest((unsigned char*)data, data_len, LDNS_SIGN_RSASHA3_256, &digest_len);
+    digest = ldns_digest_raw((unsigned char*)data, data_len, NULL, &digest_len, LDNS_SIGN_RSASHA3_256);
     hexdump(stdout, "SHA3_256_TEST", digest, digest_len);
     free(digest);
-    digest = sha3_digest((unsigned char*)data, data_len, LDNS_SIGN_RSASHA3_384, &digest_len);
+    digest = ldns_digest_raw((unsigned char*)data, data_len, NULL, &digest_len, LDNS_SIGN_RSASHA3_384);
     hexdump(stdout, "SHA3_384_TEST", digest, digest_len);
     free(digest);
-    digest = sha3_digest((unsigned char*)data, data_len, LDNS_SIGN_RSASHA3_512, &digest_len);
+    digest = ldns_digest_raw((unsigned char*)data, data_len, NULL, &digest_len, LDNS_SIGN_RSASHA3_512);
     hexdump(stdout, "SHA3_512_TEST", digest, digest_len);
     free(digest);
 }

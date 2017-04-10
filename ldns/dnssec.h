@@ -13,12 +13,12 @@
  *
  * This module contains base functions for DNSSEC operations
  * (RFC4033 t/m RFC4035).
- * 
+ *
  * Since those functions heavily rely op cryptographic operations,
  * this module is dependent on openssl.
- * 
+ *
  */
- 
+
 
 #ifndef LDNS_DNSSEC_H
 #define LDNS_DNSSEC_H
@@ -50,9 +50,9 @@ extern "C" {
 #define LDNS_SIGNATURE_REMOVE_NO_ADD 3
 
 /**
- * Returns the first RRSIG rr that corresponds to the rrset 
+ * Returns the first RRSIG rr that corresponds to the rrset
  * with the given name and type
- * 
+ *
  * \param[in] name The dname of the RRset covered by the RRSIG to find
  * \param[in] type The type of the RRset covered by the RRSIG to find
  * \param[in] rrs List of rrs to search in
@@ -111,7 +111,7 @@ ldns_rr_list *ldns_dnssec_pkt_get_rrsigs_for_name_and_type(const ldns_pkt *pkt, 
  */
 ldns_rr_list *ldns_dnssec_pkt_get_rrsigs_for_type(const ldns_pkt *pkt, ldns_rr_type type);
 
-/** 
+/**
  * calculates a keytag of a key for use in DNSSEC.
  *
  * \param[in] key the key as an RR to use for the calc.
@@ -151,8 +151,33 @@ DSA *ldns_key_buf2dsa_raw(const unsigned char* key, size_t len);
  * \param[in] md the message digest to use.
  * \return true if worked, false on failure.
  */
-int ldns_digest_evp(const unsigned char* data, unsigned int len, 
+int ldns_digest_evp(const unsigned char* data, unsigned int len,
 	unsigned char* dest, const EVP_MD* md);
+
+/**
+ * Utility function to retrieve the digest length of digest algorithms
+ * \param[in] algorithm the algorithm to retrieve the digest length of
+ * \return The length of the digest of the given algorithm, or 0 if the
+ *         algorithm is unknown or has no associated digest
+ */
+unsigned int ldns_digest_length(ldns_algorithm algorithm);
+
+/**
+ * Utility function to perform a digest operation on raw binary data
+ * \param[in] data the data to digest
+ * \param[in] data_len the length of the data
+ * \param[out] dest the destination of the hash. If NULL, data will
+ *             be allocated (size depending on algorithm). If not, it
+ *             must have enough memory available.
+ * \param[out] digest_len if not NULL, will be set to digest result size
+ * \return     pointer to the digest result, or NULL on error or if
+ *             the algorithm is unknown
+ */
+unsigned char* ldns_digest_raw(const unsigned char* data,
+                               const unsigned int data_len,
+                               unsigned char* dest,
+                               unsigned int* digest_len,
+                               ldns_algorithm algorithm);
 
 /**
  * Converts a holding buffer with key material to EVP PKEY in openssl.
@@ -211,7 +236,7 @@ RSA *ldns_key_buf2rsa(const ldns_buffer *key);
 RSA *ldns_key_buf2rsa_raw(const unsigned char* key, size_t len);
 #endif /* LDNS_BUILD_CONFIG_HAVE_SSL */
 
-/** 
+/**
  * returns a new DS rr that represents the given key rr.
  *
  * \param[in] *key the key to convert
@@ -264,7 +289,7 @@ ldns_dnssec_create_nsec3(const ldns_dnssec_name *from,
 /**
  * Create a NSEC record
  * \param[in] cur_owner the current owner which should be taken as the starting point
- * \param[in] next_owner the rrlist which the nsec rr should point to 
+ * \param[in] next_owner the rrlist which the nsec rr should point to
  * \param[in] rrs all rrs from the zone, to find all RR types of cur_owner in
  * \return a ldns_rr with the nsec record in it
  */
@@ -272,7 +297,7 @@ ldns_rr * ldns_create_nsec(ldns_rdf *cur_owner, ldns_rdf *next_owner, ldns_rr_li
 
 /**
  * Calculates the hashed name using the given parameters
- * \param[in] *name The owner name to calculate the hash for 
+ * \param[in] *name The owner name to calculate the hash for
  * \param[in] algorithm The hash algorithm to use
  * \param[in] iterations The number of hash iterations to use
  * \param[in] salt_length The length of the salt in bytes
@@ -285,10 +310,10 @@ ldns_rdf *ldns_nsec3_hash_name(const ldns_rdf *name, uint8_t algorithm, uint16_t
  * Sets all the NSEC3 options. The rr to set them in must be initialized with _new() and
  * type LDNS_RR_TYPE_NSEC3
  * \param[in] *rr The RR to set the values in
- * \param[in] algorithm The NSEC3 hash algorithm 
- * \param[in] flags The flags field 
+ * \param[in] algorithm The NSEC3 hash algorithm
+ * \param[in] flags The flags field
  * \param[in] iterations The number of hash iterations
- * \param[in] salt_length The length of the salt in bytes 
+ * \param[in] salt_length The length of the salt in bytes
  * \param[in] salt The salt bytes
  */
 void ldns_nsec3_add_param_rdfs(ldns_rr *rr,
@@ -362,7 +387,7 @@ uint8_t *ldns_nsec3_salt_data(const ldns_rr *nsec3_rr);
 /**
  * Returns the first label of the next ownername in the NSEC3 chain (ie. without the domain)
  * \param[in] nsec3_rr The RR to read from
- * \return The first label of the next owner name in the NSEC3 chain, or NULL on error 
+ * \return The first label of the next owner name in the NSEC3 chain, or NULL on error
  */
 ldns_rdf *ldns_nsec3_next_owner(const ldns_rr *nsec3_rr);
 
@@ -376,7 +401,7 @@ ldns_rdf *ldns_nsec3_bitmap(const ldns_rr *nsec3_rr);
 /**
  * Calculates the hashed name using the parameters of the given NSEC3 RR
  * \param[in] *nsec The RR to use the parameters from
- * \param[in] *name The owner name to calculate the hash for 
+ * \param[in] *name The owner name to calculate the hash for
  * \return The hashed owner name rdf, without the domain name
  */
 ldns_rdf *ldns_nsec3_hash_name_frm_nsec3(const ldns_rr *nsec, const ldns_rdf *name);
@@ -393,7 +418,7 @@ bool ldns_nsec_bitmap_covers_type(const ldns_rdf* bitmap, ldns_rr_type type);
  * Checks if RR type t is enumerated in the type bitmap rdf and sets the bit.
  * \param[in] bitmap the RR type bitmap rdf to look in
  * \param[in] type the type to for which the bit to set
- * \return LDNS_STATUS_OK on success. LDNS_STATUS_TYPE_NOT_IN_BITMAP is 
+ * \return LDNS_STATUS_OK on success. LDNS_STATUS_TYPE_NOT_IN_BITMAP is
  *         returned when the bitmap does not contain the bit to set.
  */
 ldns_status ldns_nsec_bitmap_set_type(ldns_rdf* bitmap, ldns_rr_type type);
@@ -402,7 +427,7 @@ ldns_status ldns_nsec_bitmap_set_type(ldns_rdf* bitmap, ldns_rr_type type);
  * Checks if RR type t is enumerated in the type bitmap rdf and clears the bit.
  * \param[in] bitmap the RR type bitmap rdf to look in
  * \param[in] type the type to for which the bit to clear
- * \return LDNS_STATUS_OK on success. LDNS_STATUS_TYPE_NOT_IN_BITMAP is 
+ * \return LDNS_STATUS_OK on success. LDNS_STATUS_TYPE_NOT_IN_BITMAP is
  *         returned when the bitmap does not contain the bit to clear.
  */
 ldns_status ldns_nsec_bitmap_clear_type(ldns_rdf* bitmap, ldns_rr_type type);
@@ -421,20 +446,20 @@ bool ldns_nsec_covers_name(const ldns_rr *nsec, const ldns_rdf *name);
 
 #if LDNS_BUILD_CONFIG_HAVE_SSL
 /**
- * verify a packet 
+ * verify a packet
  * \param[in] p the packet
  * \param[in] t the rr set type to check
  * \param[in] o the rr set name to check
  * \param[in] k list of keys
  * \param[in] s list of sigs (may be null)
  * \param[out] good_keys keys which validated the packet
- * \return status 
- * 
+ * \return status
+ *
  */
 ldns_status ldns_pkt_verify(const ldns_pkt *p, ldns_rr_type t, const ldns_rdf *o, const ldns_rr_list *k, const ldns_rr_list *s, ldns_rr_list *good_keys);
 
 /**
- * verify a packet 
+ * verify a packet
  * \param[in] p the packet
  * \param[in] t the rr set type to check
  * \param[in] o the rr set name to check
@@ -442,8 +467,8 @@ ldns_status ldns_pkt_verify(const ldns_pkt *p, ldns_rr_type t, const ldns_rdf *o
  * \param[in] s list of sigs (may be null)
  * \param[in] check_time the time for which the validation is performed
  * \param[out] good_keys keys which validated the packet
- * \return status 
- * 
+ * \return status
+ *
  */
 ldns_status ldns_pkt_verify_time(const ldns_pkt *p, ldns_rr_type t, const ldns_rdf *o, const ldns_rr_list *k, const ldns_rr_list *s, time_t check_time, ldns_rr_list *good_keys);
 
@@ -467,7 +492,7 @@ qsort_rr_compare_nsec3(const void *a, const void *b);
 void
 ldns_rr_list_sort_nsec3(ldns_rr_list *unsorted);
 
-/** 
+/**
  * Default callback function to always leave present signatures, and
  * add new ones
  * \param[in] sig The signature to check for removal (unused)
@@ -475,7 +500,7 @@ ldns_rr_list_sort_nsec3(ldns_rr_list *unsorted);
  * \return LDNS_SIGNATURE_LEAVE_ADD_NEW
  */
 int ldns_dnssec_default_add_to_signatures(ldns_rr *sig, void *n);
-/** 
+/**
  * Default callback function to always leave present signatures, and
  * add no new ones for the keys of these signatures
  * \param[in] sig The signature to check for removal (unused)
@@ -483,7 +508,7 @@ int ldns_dnssec_default_add_to_signatures(ldns_rr *sig, void *n);
  * \return LDNS_SIGNATURE_LEAVE_NO_ADD
  */
 int ldns_dnssec_default_leave_signatures(ldns_rr *sig, void *n);
-/** 
+/**
  * Default callback function to always remove present signatures, but
  * add no new ones
  * \param[in] sig The signature to check for removal (unused)
@@ -491,7 +516,7 @@ int ldns_dnssec_default_leave_signatures(ldns_rr *sig, void *n);
  * \return LDNS_SIGNATURE_REMOVE_NO_ADD
  */
 int ldns_dnssec_default_delete_signatures(ldns_rr *sig, void *n);
-/** 
+/**
  * Default callback function to always leave present signatures, and
  * add new ones
  * \param[in] sig The signature to check for removal (unused)
@@ -502,7 +527,7 @@ int ldns_dnssec_default_replace_signatures(ldns_rr *sig, void *n);
 
 #if LDNS_BUILD_CONFIG_HAVE_SSL
 /**
- * Converts the DSA signature from ASN1 representation (RFC2459, as 
+ * Converts the DSA signature from ASN1 representation (RFC2459, as
  * used by OpenSSL) to raw signature data as used in DNS (rfc2536)
  *
  * \param[in] sig The signature in RFC2459 format
@@ -526,7 +551,7 @@ ldns_convert_dsa_rrsig_rdf2asn1(ldns_buffer *target_buffer,
 						  const ldns_rdf *sig_rdf);
 
 /**
- * Converts the ECDSA signature from ASN1 representation (as 
+ * Converts the ECDSA signature from ASN1 representation (as
  * used by OpenSSL) to raw signature data as used in DNS
  * This routine is only present if ldns is compiled with ecdsa support.
  * The older ldns_convert_ecdsa_rrsig_asn12rdf routine could not (always)
@@ -544,7 +569,7 @@ ldns_convert_ecdsa_rrsig_asn1len2rdf(const ldns_buffer *sig,
 	const long sig_len, int num_bytes);
 
 /**
- * Converts the RRSIG signature RDF (from DNS) to a buffer with the 
+ * Converts the RRSIG signature RDF (from DNS) to a buffer with the
  * signature in ASN1 format as openssl uses it.
  * This routine is only present if ldns is compiled with ecdsa support.
  *

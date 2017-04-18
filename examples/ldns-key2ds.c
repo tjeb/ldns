@@ -31,6 +31,10 @@ usage(FILE *fp, char *prog) {
 #ifdef USE_ECDSA
 	fprintf(fp, "  -4: use SHA384 for the DS hash\n");
 #endif
+#ifdef USE_SHA3
+	fprintf(fp, "  -5: use SHA3-256 for the DS hash\n");
+	fprintf(fp, "  -6: use SHA3-384 for the DS hash\n");
+#endif
 }
 
 static int
@@ -70,6 +74,12 @@ suitable_hash(ldns_signing_algorithm algorithm)
 #ifdef USE_ED448
 	case LDNS_SIGN_ED448:
 		return LDNS_SHA256;
+#endif
+#ifdef USE_SHA3
+	case LDNS_SIGN_RSASHA3_256:
+		return LDNS_SHA3_256;
+	case LDNS_SIGN_RSASHA3_384:
+		return LDNS_SHA3_384;
 #endif
 	default: break;
 	}
@@ -119,6 +129,16 @@ main(int argc, char *argv[])
 #ifdef USE_ECDSA
 		if (strcmp(argv[0], "-4") == 0) {
 			h = LDNS_SHA384;
+			similar_hash = 0;
+		}
+#endif
+#ifdef USE_SHA3
+		if (strcmp(argv[0], "-5") == 0) {
+			h = LDNS_SHA3_256;
+			similar_hash = 0;
+		}
+		if (strcmp(argv[0], "-6") == 0) {
+			h = LDNS_SHA3_384;
 			similar_hash = 0;
 		}
 #endif

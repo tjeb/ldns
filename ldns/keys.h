@@ -83,8 +83,8 @@ enum ldns_enum_hash
         LDNS_SHA256             = 2,  /* RFC 4509 */
         LDNS_HASH_GOST          = 3,  /* RFC 5933 */
         LDNS_SHA384             = 4,  /* RFC 6605 */
-        LDNS_SHA3_256             = 5,  /* draft-muks-dnsop-dnssec-sha3 */
-        LDNS_SHA3_384             = 6,  /* draft-muks-dnsop-dnssec-sha3 */
+        LDNS_SHA3_256             = 252,  /* draft-muks-dnsop-dnssec-sha3 */
+        LDNS_SHA3_384             = 253,  /* draft-muks-dnsop-dnssec-sha3 */
         LDNS_SHA3_512             = 7,  /* draft-muks-dnsop-dnssec-sha3 */
 };
 typedef enum ldns_enum_hash ldns_hash;

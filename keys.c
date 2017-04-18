@@ -509,7 +509,6 @@ ldns_key_new_frm_fp_l(ldns_key **key, FILE *fp, int *line_nr)
 		/* no alg information */
                 ldns_key_free(k);
                 LDNS_FREE(d);
-        printf("[XX] this one1\n");
 		return LDNS_STATUS_SYNTAX_ALG_ERR;
 	}
 
@@ -792,7 +791,6 @@ ldns_key_new_frm_fp_l(ldns_key **key, FILE *fp, int *line_nr)
 #endif
 		default:
 			ldns_key_free(k);
-			        printf("[XX] this one2 %u\n", alg);
 
 			return LDNS_STATUS_SYNTAX_ALG_ERR;
 	}

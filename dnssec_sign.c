@@ -655,22 +655,9 @@ ldns_sign_public_rsasha3(ldns_buffer *M, EVP_PKEY *key, ldns_signing_algorithm a
 
 	// phew. Now sign that.
 	sig = (unsigned char*)malloc(keysize);
-	fflush(stderr);
-	fflush(stdout);
-	fprintf(stderr, "Signing EM of size %u with key of size %u\n", emLen, keysize);
-	fprintf(stderr, "EM at %p, sig at %p\n", EM, sig);
-	fprintf(stderr, "byte 0 is: %02x\n", (uint8_t)EM[0]);
-	fflush(stderr);
-	fflush(stdout);
 	sig_len = RSA_private_encrypt(emLen, EM, sig, rsa_key, RSA_NO_PADDING);
 	if (sig_len != (int)keysize) {
-	    fflush(stderr);
-	    fflush(stdout);
 	    fprintf(stderr, "Error in RSA signing; signature size seems wrong (got %d, expected %u)\n", sig_len, keysize);
-	    fprintf(stderr, "%s\n", ERR_error_string(ERR_get_error(), NULL));
-	    fprintf(stderr, "to repeat; emLen is %u, keysize is %u\n", emLen, RSA_size(rsa_key));
-	    fflush(stderr);
-	    fflush(stdout);
 	    goto cleanup;
 	}
 
@@ -682,8 +669,6 @@ ldns_sign_public_rsasha3(ldns_buffer *M, EVP_PKEY *key, ldns_signing_algorithm a
 	if (EM != NULL) { free(EM); }
 	if (sig != NULL) { free(sig); }
 
-	// tmp test cases
-	dotests();
 	return sigdata_rdf;
 }
 

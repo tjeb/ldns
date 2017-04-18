@@ -305,7 +305,6 @@ main(int argc, char *argv[])
 	case LDNS_SIGN_RSASHA3_256:
 	case LDNS_SIGN_RSASHA3_384:
 	case LDNS_SIGN_RSASHA3_512:
-		printf("[XX] creating sha3 DS\n");
 		ds = ldns_key_rr2ds(pubkey, LDNS_SHA3_256);
 		if (!ds) {
 			fprintf(stderr, "Error creating ds record\n");

@@ -2859,7 +2859,6 @@ ldns_verify_rrsig_rsasha3_raw(unsigned char* sig,
 	    fprintf(stderr, "Error, decrypted sig len wrong\n");
 	    goto cleanup;
 	}
-	printf("[XX] decrypted sig len: %d\n", decrypted_sig_len);
 
 	if (emsa_pss_verify(ldns_buffer_begin(rrset),
 	                    ldns_buffer_position(rrset),
@@ -2869,16 +2868,6 @@ ldns_verify_rrsig_rsasha3_raw(unsigned char* sig,
 	                    algorithm) == 0) {
 		result = LDNS_STATUS_OK;
 	}
-
-	/* touch these to prevent compiler warnings */
-	(void) sig;
-	(void) siglen;
-	(void) rrset;
-	(void) key;
-	(void) keylen;
-	(void) algorithm;
-
-
 
 	cleanup:
 	if (rsa_key != NULL) { RSA_free(rsa_key); }

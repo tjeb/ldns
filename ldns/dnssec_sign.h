@@ -83,13 +83,12 @@ ldns_rdf *ldns_sign_public_rsasha1(ldns_buffer *to_sign, RSA *key);
 ldns_rdf *ldns_sign_public_rsamd5(ldns_buffer *to_sign, RSA *key);
 
 /**
- * Sign a buffer with the RSA key (hash with one of the SHA3 digests)
+ * Sign a buffer with the RSA key and the PSS encoding scheme
  * \param[in] to_sign buffer with the data
  * \param[in] key the key to use
  * \return a ldns_rdf with the signed data
  */
-ldns_rdf *ldns_sign_public_rsasha3_256(ldns_buffer *to_sign, EVP_PKEY *key);
-ldns_rdf *ldns_sign_public_rsasha3(ldns_buffer *to_sign, EVP_PKEY *key, ldns_signing_algorithm algorithm);
+ldns_rdf *ldns_sign_public_rsa_pss(ldns_buffer *to_sign, EVP_PKEY *key, ldns_signing_algorithm algorithm);
 
 #endif /* LDNS_BUILD_CONFIG_HAVE_SSL */
 

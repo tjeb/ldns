@@ -124,6 +124,7 @@ Or you can just use the menu above to browse through the API docs.
 #include <ldns/sha1.h>
 #include <ldns/sha2.h>
 #include <ldns/sha3.h>
+#include <ldns/emsa_pss.h>
 
 #ifdef __cplusplus
 extern "C" {

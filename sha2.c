@@ -1,7 +1,7 @@
 /*
  * FILE:	sha2.c
  * AUTHOR:	Aaron D. Gifford - http://www.aarongifford.com/
- * 
+ *
  * Copyright (c) 2000-2001, Aaron D. Gifford
  * All rights reserved.
  *
@@ -12,7 +12,7 @@
  * - Removed _End and _Data functions
  * - Added ldns_shaX(data, len, digest) convenience functions
  * - Removed prototypes of _Transform functions and made those static
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -24,7 +24,7 @@
  * 3. Neither the name of the copyright holder nor the names of contributors
  *    may be used to endorse or promote products derived from this software
  *    without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTOR(S) ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -83,7 +83,7 @@
  *
  * And for little-endian machines, add:
  *
- *   #define BYTE_ORDER LITTLE_ENDIAN 
+ *   #define BYTE_ORDER LITTLE_ENDIAN
  *
  * Or for big-endian machines:
  *
@@ -463,11 +463,11 @@ static void ldns_sha256_Transform(ldns_sha256_CTX* context,
 		/* Part of the message block expansion: */
 		s0 = W256[(j+1)&0x0f];
 		s0 = sigma0_256(s0);
-		s1 = W256[(j+14)&0x0f];	
+		s1 = W256[(j+14)&0x0f];
 		s1 = sigma1_256(s1);
 
 		/* Apply the SHA-256 compression function to update a..h */
-		T1 = h + Sigma1_256(e) + Ch(e, f, g) + K256[j] + 
+		T1 = h + Sigma1_256(e) + Ch(e, f, g) + K256[j] +
 		     (W256[j&0x0f] += s1 + W256[(j+9)&0x0f] + s0);
 		T2 = Sigma0_256(a) + Maj(a, b, c);
 		h = g;
@@ -617,9 +617,12 @@ void ldns_sha256_final(sha2_byte digest[], ldns_sha256_CTX* context) {
 }
 
 unsigned char *
-ldns_sha256(unsigned char *data, unsigned int data_len, unsigned char *digest)
+ldns_sha256(const unsigned char *data, unsigned int data_len, unsigned char *digest)
 {
     ldns_sha256_CTX ctx;
+    if (digest == NULL) {
+        digest = (unsigned char*) malloc(LDNS_SHA256_DIGEST_LENGTH);
+    }
     ldns_sha256_init(&ctx);
     ldns_sha256_update(&ctx, data, data_len);
     ldns_sha256_final(digest, &ctx);
@@ -928,9 +931,12 @@ void ldns_sha512_final(sha2_byte digest[], ldns_sha512_CTX* context) {
 }
 
 unsigned char *
-ldns_sha512(unsigned char *data, unsigned int data_len, unsigned char *digest)
+ldns_sha512(const unsigned char *data, unsigned int data_len, unsigned char *digest)
 {
     ldns_sha512_CTX ctx;
+    if (digest == NULL) {
+        digest = (unsigned char*) malloc(LDNS_SHA512_DIGEST_LENGTH);
+    }
     ldns_sha512_init(&ctx);
     ldns_sha512_update(&ctx, data, data_len);
     ldns_sha512_final(digest, &ctx);
@@ -981,9 +987,12 @@ void ldns_sha384_final(sha2_byte digest[], ldns_sha384_CTX* context) {
 }
 
 unsigned char *
-ldns_sha384(unsigned char *data, unsigned int data_len, unsigned char *digest)
+ldns_sha384(const unsigned char *data, unsigned int data_len, unsigned char *digest)
 {
     ldns_sha384_CTX ctx;
+    if (digest == NULL) {
+        digest = (unsigned char*) malloc(LDNS_SHA384_DIGEST_LENGTH);
+    }
     ldns_sha384_init(&ctx);
     ldns_sha384_update(&ctx, data, data_len);
     ldns_sha384_final(digest, &ctx);

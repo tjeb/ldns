@@ -1,7 +1,14 @@
+/**
+ * SHA-3 (keccak) implementation.
+ * This file is taken from RHash; https://github.com/rhash
+ *
+ * There are some small modifications to fit into the ldns library
+ * by Jelte Jansen (2017)
+ */
+
 /* sha3.h */
 #ifndef RHASH_SHA3_H
 #define RHASH_SHA3_H
-#include "ustd.h"
 #include <openssl/evp.h>
 #include "ldns/ldns.h"
 
@@ -54,17 +61,8 @@ void rhash_keccak_final(sha3_ctx *ctx, unsigned char* result);
 #endif /* __cplusplus */
 
 /* convenience functions */
-unsigned char *ldns_sha3_256(unsigned char *data, unsigned int data_len, unsigned char *digest);
-unsigned char *ldns_sha3_384(unsigned char *data, unsigned int data_len, unsigned char *digest);
-unsigned char *ldns_sha3_512(unsigned char *data, unsigned int data_len, unsigned char *digest);
-
-unsigned int sha3_digest_len(ldns_algorithm algorithm);
-unsigned char *sha3_digest(unsigned char* data, unsigned int data_len, ldns_algorithm algorithm, unsigned int* digest_len);
-void I2OSP(unsigned char* output, unsigned int X, unsigned int xLen);
-unsigned char* MGF(unsigned char* mgfSeed, unsigned int mgfSeed_len, unsigned int maskLen, ldns_algorithm algorithm);
-unsigned char *emsa_pss_encode(unsigned char* M, unsigned int M_len, unsigned int emBits, unsigned int* emLen, ldns_algorithm algorithm);
-int emsa_pss_verify(unsigned char* M, unsigned int M_len, unsigned char* EM, unsigned int EM_len, unsigned int emBits, ldns_algorithm algorithm);
-void dotests(void);
-
+unsigned char *ldns_sha3_256(const unsigned char *data, unsigned int data_len, unsigned char *digest);
+unsigned char *ldns_sha3_384(const unsigned char *data, unsigned int data_len, unsigned char *digest);
+unsigned char *ldns_sha3_512(const unsigned char *data, unsigned int data_len, unsigned char *digest);
 
 #endif /* RHASH_SHA3_H */

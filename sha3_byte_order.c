@@ -1,5 +1,10 @@
 /* byte_order.c - byte order related platform dependent routines,
  *
+ * This file is taken from RHash; https://github.com/rhash
+ *
+ * There are some small modifications to fit into the ldns library
+ * by Jelte Jansen (2017)
+ *
  * Copyright: 2008-2012 Aleksey Kravchenko <rhash.admin@gmail.com>
  *
  * Permission is hereby granted,  free of charge,  to any person  obtaining a

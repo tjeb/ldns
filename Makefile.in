@@ -75,7 +75,7 @@ DEPFLAG		= @DEPFLAG@
 INSTALL		= $(srcdir)/install-sh
 
 LIBLOBJS	= $(LIBOBJS:.o=.lo)
-LDNS_LOBJS	= buffer.lo dane.lo dname.lo dnssec.lo dnssec_sign.lo dnssec_verify.lo dnssec_zone.lo duration.lo error.lo higher.lo host2str.lo host2wire.lo keys.lo net.lo packet.lo parse.lo radix.lo rbtree.lo rdata.lo resolver.lo rr.lo rr_functions.lo sha1.lo sha2.lo str2host.lo tsig.lo update.lo util.lo wire2host.lo zone.lo sha3.lo
+LDNS_LOBJS	= buffer.lo dane.lo dname.lo dnssec.lo dnssec_sign.lo dnssec_verify.lo dnssec_zone.lo duration.lo error.lo higher.lo host2str.lo host2wire.lo keys.lo net.lo packet.lo parse.lo radix.lo rbtree.lo rdata.lo resolver.lo rr.lo rr_functions.lo sha1.lo sha2.lo str2host.lo tsig.lo update.lo util.lo wire2host.lo zone.lo emsa_pss.lo sha3.lo
 LDNS_LOBJS_EX	= ^linktest\.c$$
 LDNS_ALL_LOBJS	= $(LDNS_LOBJS) $(LIBLOBJS)
 LIB		= libldns.la
@@ -567,7 +567,7 @@ dnssec.lo dnssec.o: $(srcdir)/dnssec.c ldns/config.h $(srcdir)/ldns/ldns.h ldns/
  $(srcdir)/ldns/host2str.h $(srcdir)/ldns/dnssec_verify.h $(srcdir)/ldns/dnssec_sign.h $(srcdir)/ldns/duration.h \
  $(srcdir)/ldns/higher.h $(srcdir)/ldns/host2wire.h ldns/net.h $(srcdir)/ldns/str2host.h $(srcdir)/ldns/update.h \
  $(srcdir)/ldns/wire2host.h $(srcdir)/ldns/rr_functions.h $(srcdir)/ldns/parse.h $(srcdir)/ldns/radix.h \
- $(srcdir)/ldns/sha1.h $(srcdir)/ldns/sha2.h $(srcdir)/ldns/sha3.h
+ $(srcdir)/ldns/sha1.h $(srcdir)/ldns/sha2.h $(srcdir)/ldns/sha3.h $(srcdir)/ldns/emsa_pss.h
 dnssec_sign.lo dnssec_sign.o: $(srcdir)/dnssec_sign.c ldns/config.h $(srcdir)/ldns/ldns.h ldns/util.h \
  ldns/common.h $(srcdir)/ldns/buffer.h $(srcdir)/ldns/error.h $(srcdir)/ldns/dane.h $(srcdir)/ldns/rdata.h \
  $(srcdir)/ldns/rr.h $(srcdir)/ldns/dname.h $(srcdir)/ldns/dnssec.h $(srcdir)/ldns/packet.h $(srcdir)/ldns/keys.h \
@@ -575,7 +575,7 @@ dnssec_sign.lo dnssec_sign.o: $(srcdir)/dnssec_sign.c ldns/config.h $(srcdir)/ld
  $(srcdir)/ldns/host2str.h $(srcdir)/ldns/dnssec_verify.h $(srcdir)/ldns/dnssec_sign.h $(srcdir)/ldns/duration.h \
  $(srcdir)/ldns/higher.h $(srcdir)/ldns/host2wire.h ldns/net.h $(srcdir)/ldns/str2host.h $(srcdir)/ldns/update.h \
  $(srcdir)/ldns/wire2host.h $(srcdir)/ldns/rr_functions.h $(srcdir)/ldns/parse.h $(srcdir)/ldns/radix.h \
- $(srcdir)/ldns/sha1.h $(srcdir)/ldns/sha2.h $(srcdir)/ldns/sha3.h
+ $(srcdir)/ldns/sha1.h $(srcdir)/ldns/sha2.h $(srcdir)/ldns/sha3.h $(srcdir)/ldns/emsa_pss.h
 dnssec_verify.lo dnssec_verify.o: $(srcdir)/dnssec_verify.c ldns/config.h $(srcdir)/ldns/ldns.h ldns/util.h \
  ldns/common.h $(srcdir)/ldns/buffer.h $(srcdir)/ldns/error.h $(srcdir)/ldns/dane.h $(srcdir)/ldns/rdata.h \
  $(srcdir)/ldns/rr.h $(srcdir)/ldns/dname.h $(srcdir)/ldns/dnssec.h $(srcdir)/ldns/packet.h $(srcdir)/ldns/keys.h \
@@ -583,7 +583,7 @@ dnssec_verify.lo dnssec_verify.o: $(srcdir)/dnssec_verify.c ldns/config.h $(srcd
  $(srcdir)/ldns/host2str.h $(srcdir)/ldns/dnssec_verify.h $(srcdir)/ldns/dnssec_sign.h $(srcdir)/ldns/duration.h \
  $(srcdir)/ldns/higher.h $(srcdir)/ldns/host2wire.h ldns/net.h $(srcdir)/ldns/str2host.h $(srcdir)/ldns/update.h \
  $(srcdir)/ldns/wire2host.h $(srcdir)/ldns/rr_functions.h $(srcdir)/ldns/parse.h $(srcdir)/ldns/radix.h \
- $(srcdir)/ldns/sha1.h $(srcdir)/ldns/sha2.h $(srcdir)/ldns/sha3.h
+ $(srcdir)/ldns/sha1.h $(srcdir)/ldns/sha2.h $(srcdir)/ldns/sha3.h $(srcdir)/ldns/emsa_pss.h
 dnssec_zone.lo dnssec_zone.o: $(srcdir)/dnssec_zone.c ldns/config.h $(srcdir)/ldns/ldns.h ldns/util.h \
  ldns/common.h $(srcdir)/ldns/buffer.h $(srcdir)/ldns/error.h $(srcdir)/ldns/dane.h $(srcdir)/ldns/rdata.h \
  $(srcdir)/ldns/rr.h $(srcdir)/ldns/dname.h $(srcdir)/ldns/dnssec.h $(srcdir)/ldns/packet.h $(srcdir)/ldns/keys.h \
@@ -591,7 +591,7 @@ dnssec_zone.lo dnssec_zone.o: $(srcdir)/dnssec_zone.c ldns/config.h $(srcdir)/ld
  $(srcdir)/ldns/host2str.h $(srcdir)/ldns/dnssec_verify.h $(srcdir)/ldns/dnssec_sign.h $(srcdir)/ldns/duration.h \
  $(srcdir)/ldns/higher.h $(srcdir)/ldns/host2wire.h ldns/net.h $(srcdir)/ldns/str2host.h $(srcdir)/ldns/update.h \
  $(srcdir)/ldns/wire2host.h $(srcdir)/ldns/rr_functions.h $(srcdir)/ldns/parse.h $(srcdir)/ldns/radix.h \
- $(srcdir)/ldns/sha1.h $(srcdir)/ldns/sha2.h $(srcdir)/ldns/sha3.h
+ $(srcdir)/ldns/sha1.h $(srcdir)/ldns/sha2.h $(srcdir)/ldns/sha3.h $(srcdir)/ldns/emsa_pss.h
 duration.lo duration.o: $(srcdir)/duration.c ldns/config.h $(srcdir)/ldns/duration.h
 error.lo error.o: $(srcdir)/error.c ldns/config.h $(srcdir)/ldns/ldns.h ldns/util.h ldns/common.h \
  $(srcdir)/ldns/buffer.h $(srcdir)/ldns/error.h $(srcdir)/ldns/dane.h $(srcdir)/ldns/rdata.h $(srcdir)/ldns/rr.h \
@@ -710,6 +710,7 @@ sha1.lo sha1.o: $(srcdir)/sha1.c ldns/config.h $(srcdir)/ldns/ldns.h ldns/util.h
  $(srcdir)/ldns/sha1.h $(srcdir)/ldns/sha2.h $(srcdir)/ldns/sha3.h
 sha2.lo sha2.o: $(srcdir)/sha2.c ldns/config.h $(srcdir)/ldns/sha2.h
 sha3.lo sha3.o: $(srcdir)/sha3.c ldns/config.h $(srcdir)/ldns/sha3.h
+emsa_pss.lo emsa_pss.o: $(srcdir)/emsa_pss.c ldns/config.h $(srcdir)/ldns/emsa_pss.h
 str2host.lo str2host.o: $(srcdir)/str2host.c ldns/config.h $(srcdir)/ldns/ldns.h ldns/util.h \
  ldns/common.h $(srcdir)/ldns/buffer.h $(srcdir)/ldns/error.h $(srcdir)/ldns/dane.h $(srcdir)/ldns/rdata.h \
  $(srcdir)/ldns/rr.h $(srcdir)/ldns/dname.h $(srcdir)/ldns/dnssec.h $(srcdir)/ldns/packet.h $(srcdir)/ldns/keys.h \

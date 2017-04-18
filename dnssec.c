@@ -2063,4 +2063,75 @@ ldns_convert_ed448_rrsig_rdf2asn1(ldns_buffer *target_buffer,
 }
 #endif /* USE_ED448 */
 
+unsigned int
+ldns_digest_length(ldns_signing_algorithm algorithm)
+{
+	switch (algorithm) {
+	case LDNS_SIGN_RSAMD5:
+	case LDNS_SIGN_HMACMD5:
+		return 16;
+	case LDNS_SIGN_RSASHA1:
+	case LDNS_SIGN_RSASHA1_NSEC3:
+	case LDNS_SIGN_DSA:
+	case LDNS_SIGN_DSA_NSEC3:
+	case LDNS_SIGN_HMACSHA1:
+		return LDNS_SHA1_DIGEST_LENGTH;
+	case LDNS_SIGN_RSASHA256:
+	case LDNS_SIGN_ECDSAP256SHA256:
+	case LDNS_SIGN_RSASHA2_256:
+	case LDNS_SIGN_RSASHA3_256:
+	case LDNS_SIGN_HMACSHA256:
+		return LDNS_SHA256_DIGEST_LENGTH;
+	case LDNS_SIGN_RSASHA512:
+	case LDNS_SIGN_RSASHA2_512:
+	case LDNS_SIGN_RSASHA3_512:
+	case LDNS_SIGN_HMACSHA512:
+		return LDNS_SHA512_DIGEST_LENGTH;
+	case LDNS_SIGN_ECC_GOST:
+		return 32;
+	case LDNS_SIGN_ECDSAP384SHA384:
+	case LDNS_SIGN_RSASHA3_384:
+	case LDNS_SIGN_HMACSHA384:
+		return LDNS_SHA384_DIGEST_LENGTH;
+	case LDNS_SIGN_HMACSHA224:
+		return 28;
+	default:
+		fprintf(stderr, "Error: called ldns_digest_length without for unknown algorithm %u\n", algorithm);
+		return 0;
+	}
+}
+
+unsigned char*
+ldns_digest_raw(const unsigned char* data,
+                const unsigned int data_len,
+                unsigned char* dest,
+                unsigned int* digest_len,
+                ldns_signing_algorithm algorithm) {
+	if (digest_len != NULL) {
+		*digest_len = ldns_digest_length(algorithm);
+	}
+	switch (algorithm) {
+	case LDNS_SIGN_RSASHA1:
+	case LDNS_SIGN_RSASHA1_NSEC3:
+		return ldns_sha1(data, data_len, dest);
+	case LDNS_SIGN_RSASHA256:
+	case LDNS_SIGN_RSASHA2_256:
+		return ldns_sha256(data, data_len, dest);
+	case LDNS_SIGN_RSASHA512:
+	case LDNS_SIGN_RSASHA2_512:
+		return ldns_sha512(data, data_len, dest);
+	case LDNS_SIGN_RSASHA3_256:
+		return ldns_sha3_256(data, data_len, dest);
+	case LDNS_SIGN_RSASHA3_384:
+		return ldns_sha3_384(data, data_len, dest);
+	case LDNS_SIGN_RSASHA3_512:
+		return ldns_sha3_512(data, data_len, dest);
+	default:
+		fprintf(stderr, "Error: called ldns_digest_raw for unknown or (for this operation) unsupported algorithm %u\n", algorithm);
+		return NULL;
+	}
+
+}
+
+
 #endif /* HAVE_SSL */

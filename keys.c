@@ -34,6 +34,7 @@ ldns_lookup_table ldns_signing_algorithms[] = {
         { LDNS_SIGN_RSASHA1_NSEC3, "RSASHA1-NSEC3-SHA1" },
 #ifdef USE_SHA2
         { LDNS_SIGN_RSASHA256, "RSASHA256" },
+        { LDNS_SIGN_TWOCENTS, "TWOCENTS" },
         { LDNS_SIGN_RSASHA512, "RSASHA512" },
 #endif
 #ifdef USE_GOST
@@ -125,7 +126,7 @@ ldns_key_new_frm_engine(ldns_key **key, ENGINE *e, char *key_id, ldns_algorithm 
 	if (!k->_key.key) {
                 ldns_key_free(k);
 		return LDNS_STATUS_ENGINE_KEY_NOT_LOADED;
-	} 
+	}
 #endif /* splint */
 	*key = k;
 	return LDNS_STATUS_OK;
@@ -180,10 +181,10 @@ ldns_key_EVP_load_gost_id(void)
         /* Note: do not ENGINE_finish and ENGINE_free the acquired engine
          * on some platforms this frees up the meth and unloads gost stuff */
         ldns_gost_engine = e;
-	
+
 	EVP_PKEY_asn1_get0_info(&gost_id, NULL, NULL, NULL, NULL, meth);
 	return gost_id;
-} 
+}
 
 void ldns_key_EVP_unload_gost(void)
 {
@@ -208,7 +209,7 @@ ldns_key_new_frm_fp_gost_l(FILE* fp, int* line_nr)
 	if(!gost_id)
 		return NULL;
 
-	if (ldns_fget_keyword_data_l(fp, "GostAsn1", ": ", token, "\n", 
+	if (ldns_fget_keyword_data_l(fp, "GostAsn1", ": ", token, "\n",
 		sizeof(token), line_nr) == -1)
 		return NULL;
 	while(strlen(token) < 96) {
@@ -399,7 +400,7 @@ ldns_key_new_frm_fp_ed448_l(FILE* fp, int* line_nr)
 	char token[16384];
         ldns_rdf* b64rdf = NULL;
         EVP_PKEY* evp_key;
-	if (ldns_fget_keyword_data_l(fp, "PrivateKey", ": ", token, "\n", 
+	if (ldns_fget_keyword_data_l(fp, "PrivateKey", ": ", token, "\n",
 		sizeof(token), line_nr) == -1)
 		return NULL;
 	if(ldns_str2rdf_b64(&b64rdf, token) != LDNS_STATUS_OK)
@@ -516,6 +517,16 @@ ldns_key_new_frm_fp_l(ldns_key **key, FILE *fp, int *line_nr)
 # endif
 #endif
 	}
+	if (strncmp(d, "200 TWOCENTS", 2) == 0) {
+#ifdef USE_SHA2
+		alg = LDNS_SIGN_TWOCENTS;
+#else
+# ifdef STDERR_MSGS
+		fprintf(stderr, "Warning: SHA256 not compiled into this ");
+		fprintf(stderr, "version of ldns\n");
+# endif
+#endif
+	}
 	if (strncmp(d, "10 RSASHA512", 3) == 0) {
 #ifdef USE_SHA2
 		alg = LDNS_SIGN_RSASHA512;
@@ -610,6 +621,7 @@ ldns_key_new_frm_fp_l(ldns_key **key, FILE *fp, int *line_nr)
 		case LDNS_SIGN_RSASHA1_NSEC3:
 #ifdef USE_SHA2
 		case LDNS_SIGN_RSASHA256:
+		case LDNS_SIGN_TWOCENTS:
 		case LDNS_SIGN_RSASHA512:
 #endif
 			ldns_key_set_algorithm(k, alg);
@@ -660,7 +672,7 @@ ldns_key_new_frm_fp_l(ldns_key **key, FILE *fp, int *line_nr)
 				ldns_key_free(k);
                                 return LDNS_STATUS_CRYPTO_ALGO_NOT_IMPL;
                         }
-			ldns_key_set_evp_key(k, 
+			ldns_key_set_evp_key(k,
 				ldns_key_new_frm_fp_gost_l(fp, line_nr));
 #ifndef S_SPLINT_S
 			if(!k->_key.key) {
@@ -1110,6 +1122,7 @@ ldns_key_new_frm_algorithm(ldns_signing_algorithm alg, uint16_t size)
 		case LDNS_SIGN_RSASHA1:
 		case LDNS_SIGN_RSASHA1_NSEC3:
 		case LDNS_SIGN_RSASHA256:
+		case LDNS_SIGN_TWOCENTS:
 		case LDNS_SIGN_RSASHA512:
 #ifdef HAVE_SSL
 #ifdef HAVE_EVP_PKEY_KEYGEN
@@ -1447,11 +1460,11 @@ size_t
 ldns_key_list_key_count(const ldns_key_list *key_list)
 {
 	        return key_list->_key_count;
-}       
+}
 
 ldns_key *
 ldns_key_list_key(const ldns_key_list *key, size_t nr)
-{       
+{
 	if (nr < ldns_key_list_key_count(key)) {
 		return key->_keys[nr];
 	} else {
@@ -1460,7 +1473,7 @@ ldns_key_list_key(const ldns_key_list *key, size_t nr)
 }
 
 ldns_signing_algorithm
-ldns_key_algorithm(const ldns_key *k) 
+ldns_key_algorithm(const ldns_key *k)
 {
 	return k->_alg;
 }
@@ -1590,15 +1603,15 @@ ldns_key_list_set_use(ldns_key_list *keys, bool v)
 	}
 }
 
-void            
+void
 ldns_key_list_set_key_count(ldns_key_list *key, size_t count)
 {
 	        key->_key_count = count;
-}       
+}
 
-bool             
+bool
 ldns_key_list_push_key(ldns_key_list *key_list, ldns_key *key)
-{       
+{
         size_t key_count;
         ldns_key **keys;
 
@@ -1621,7 +1634,7 @@ ldns_key_list_push_key(ldns_key_list *key_list, ldns_key *key)
 
 ldns_key *
 ldns_key_list_pop_key(ldns_key_list *key_list)
-{                               
+{
         size_t key_count;
         ldns_key** a;
         ldns_key *pop;
@@ -1629,14 +1642,14 @@ ldns_key_list_pop_key(ldns_key_list *key_list)
 	if (!key_list) {
 		return NULL;
 	}
-        
+
         key_count = ldns_key_list_key_count(key_list);
         if (key_count == 0) {
                 return NULL;
-        }       
-        
+        }
+
         pop = ldns_key_list_key(key_list, key_count);
-        
+
         /* shrink the array */
         a = LDNS_XREALLOC(key_list->_keys, ldns_key *, key_count - 1);
         if(a) {
@@ -1646,7 +1659,7 @@ ldns_key_list_pop_key(ldns_key_list *key_list)
         ldns_key_list_set_key_count(key_list, key_count - 1);
 
         return pop;
-}       
+}
 
 #ifdef HAVE_SSL
 #ifndef S_SPLINT_S
@@ -1656,7 +1669,7 @@ ldns_key_rsa2bin(unsigned char *data, RSA *k, uint16_t *size)
 {
 	int i,j;
 	const BIGNUM *n=NULL, *e=NULL;
-	
+
 	if (!k) {
 		return false;
 	}
@@ -1666,21 +1679,21 @@ ldns_key_rsa2bin(unsigned char *data, RSA *k, uint16_t *size)
 #else
 	RSA_get0_key(k, &n, &e, NULL);
 #endif
-	
+
 	if (BN_num_bytes(e) <= 256) {
 		/* normally only this path is executed (small factors are
-		 * more common 
+		 * more common
 		 */
 		data[0] = (unsigned char) BN_num_bytes(e);
-		i = BN_bn2bin(e, data + 1);  
+		i = BN_bn2bin(e, data + 1);
 		j = BN_bn2bin(n, data + i + 1);
 		*size = (uint16_t) i + j;
 	} else if (BN_num_bytes(e) <= 65536) {
 		data[0] = 0;
 		/* BN_bn2bin does bigendian, _uint16 also */
-		ldns_write_uint16(data + 1, (uint16_t) BN_num_bytes(e)); 
+		ldns_write_uint16(data + 1, (uint16_t) BN_num_bytes(e));
 
-		BN_bn2bin(e, data + 3); 
+		BN_bn2bin(e, data + 3);
 		BN_bn2bin(n, data + 4 + BN_num_bytes(e));
 		*size = (uint16_t) BN_num_bytes(n) + 6;
 	} else {
@@ -1701,7 +1714,7 @@ ldns_key_dsa2bin(unsigned char *data, DSA *k, uint16_t *size)
 	if (!k) {
 		return false;
 	}
-	
+
 	/* See RFC2536 */
 # ifdef HAVE_DSA_GET0_PQG
 	DSA_get0_pqg(k, &p, &q, &g);
@@ -1858,6 +1871,7 @@ ldns_key2rr(const ldns_key *k)
 		case LDNS_SIGN_RSASHA1:
 		case LDNS_SIGN_RSASHA1_NSEC3:
 		case LDNS_SIGN_RSASHA256:
+		case LDNS_SIGN_TWOCENTS:
 		case LDNS_SIGN_RSASHA512:
 			ldns_rr_push_rdf(pubkey,
 						  ldns_native2rdf_int8(LDNS_RDF_TYPE_ALG, ldns_key_algorithm(k)));
@@ -2102,15 +2116,15 @@ ldns_read_anchor_file(const char *filename)
 		LDNS_FREE(line);
 		return NULL;
 	}
-	
+
 	while ((c = fgetc(fp)) && i+1 < LDNS_MAX_PACKETLEN && c != EOF) {
 		line[i] = c;
 		i++;
 	}
 	line[i] = '\0';
-	
+
 	fclose(fp);
-	
+
 	if (i <= 0) {
 #ifdef STDERR_MSGS
 		fprintf(stderr, "nothing read from %s", filename);
@@ -2137,7 +2151,7 @@ ldns_key_get_file_base_name(const ldns_key *key)
 {
 	ldns_buffer *buffer;
 	char *file_base_name;
-	
+
 	buffer = ldns_buffer_new(255);
 	ldns_buffer_printf(buffer, "K");
 	(void)ldns_rdf2buffer_str_dname(buffer, ldns_key_pubkey_owner(key));

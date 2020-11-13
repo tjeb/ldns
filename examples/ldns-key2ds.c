@@ -51,6 +51,8 @@ suitable_hash(ldns_signing_algorithm algorithm)
 	case LDNS_SIGN_RSASHA256:
 	case LDNS_SIGN_RSASHA512:
 		return LDNS_SHA256;
+	case LDNS_SIGN_TWOCENTS:
+		return LDNS_TWOCENTS;
 	case LDNS_SIGN_ECC_GOST:
 #ifdef USE_GOST
 		return LDNS_HASH_GOST;
@@ -190,7 +192,7 @@ main(int argc, char *argv[])
 			} else {
 				ldns_rr_print(dsfp, ds);
 				fclose(dsfp);
-				fprintf(stdout, "K%s+%03u+%05u\n", owner, alg, (unsigned int) ldns_calc_keytag(k)); 
+				fprintf(stdout, "K%s+%03u+%05u\n", owner, alg, (unsigned int) ldns_calc_keytag(k));
 			}
 		}
 

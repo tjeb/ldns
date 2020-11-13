@@ -155,6 +155,12 @@ ldns_sign_public_buffer(ldns_buffer *sign_buf, ldns_key *current_key)
 				   ldns_key_evp_key(current_key),
 				   EVP_sha256());
 		break;
+	case LDNS_SIGN_TWOCENTS:
+		b64rdf = ldns_sign_public_evp(
+				   sign_buf,
+				   ldns_key_evp_key(current_key),
+				   EVP_sha256());
+		break;
 	case LDNS_SIGN_RSASHA512:
 		b64rdf = ldns_sign_public_evp(
 				   sign_buf,
@@ -248,7 +254,7 @@ ldns_sign_public(ldns_rr_list *rrset, ldns_key_list *keys)
 
 	/* make it canonical */
 	for(i = 0; i < ldns_rr_list_rr_count(rrset_clone); i++) {
-		ldns_rr_set_ttl(ldns_rr_list_rr(rrset_clone, i), 
+		ldns_rr_set_ttl(ldns_rr_list_rr(rrset_clone, i),
 			ldns_rr_ttl(ldns_rr_list_rr(rrset, 0)));
 		ldns_rr2canonical(ldns_rr_list_rr(rrset_clone, i));
 	}
@@ -596,7 +602,7 @@ ldns_sign_public_rsasha1(ldns_buffer *to_sign, RSA *key)
 		return NULL;
 	}
 
-	sigdata_rdf = ldns_rdf_new_frm_data(LDNS_RDF_TYPE_B64, siglen, 
+	sigdata_rdf = ldns_rdf_new_frm_data(LDNS_RDF_TYPE_B64, siglen,
 								 ldns_buffer_begin(b64sig));
 	ldns_buffer_free(b64sig); /* can't free this buffer ?? */
 	return sigdata_rdf;
@@ -643,15 +649,15 @@ ldns_dnssec_addresses_on_glue_list(
 {
 	ldns_dnssec_rrs *cur_rrs;
 	while (cur_rrset) {
-		if (cur_rrset->type == LDNS_RR_TYPE_A 
+		if (cur_rrset->type == LDNS_RR_TYPE_A
 				|| cur_rrset->type == LDNS_RR_TYPE_AAAA) {
-			for (cur_rrs = cur_rrset->rrs; 
-					cur_rrs; 
+			for (cur_rrs = cur_rrset->rrs;
+					cur_rrs;
 					cur_rrs = cur_rrs->next) {
 				if (cur_rrs->rr) {
-					if (!ldns_rr_list_push_rr(glue_list, 
+					if (!ldns_rr_list_push_rr(glue_list,
 							cur_rrs->rr)) {
-						return LDNS_STATUS_MEM_ERR; 
+						return LDNS_STATUS_MEM_ERR;
 						/* ldns_rr_list_push_rr()
 						 * returns false when unable
 						 * to increase the capacity
@@ -670,7 +676,7 @@ ldns_dnssec_addresses_on_glue_list(
  * Marks the names in the zone that are occluded. Those names will be skipped
  * when walking the tree with the ldns_dnssec_name_node_next_nonglue()
  * function. But watch out! Names that are partially occluded (like glue with
- * the same name as the delegation) will not be marked and should specifically 
+ * the same name as the delegation) will not be marked and should specifically
  * be taken into account separately.
  *
  * When glue_list is given (not NULL), in the process of marking the names, all
@@ -681,7 +687,7 @@ ldns_dnssec_addresses_on_glue_list(
  * \return LDNS_STATUS_OK on success, an error code otherwise
  */
 ldns_status
-ldns_dnssec_zone_mark_and_get_glue(ldns_dnssec_zone *zone, 
+ldns_dnssec_zone_mark_and_get_glue(ldns_dnssec_zone *zone,
 	ldns_rr_list *glue_list)
 {
 	ldns_rbnode_t    *node;
@@ -697,17 +703,17 @@ ldns_dnssec_zone_mark_and_get_glue(ldns_dnssec_zone *zone,
 	if (!zone || !zone->names) {
 		return LDNS_STATUS_NULL;
 	}
-	for (node = ldns_rbtree_first(zone->names); 
-			node != LDNS_RBTREE_NULL; 
+	for (node = ldns_rbtree_first(zone->names);
+			node != LDNS_RBTREE_NULL;
 			node = ldns_rbtree_next(node)) {
 		name = (ldns_dnssec_name *) node->data;
 		owner = ldns_dnssec_name_name(name);
 
-		if (cut) { 
+		if (cut) {
 			/* The previous node was a zone cut, or a subdomain
 			 * below a zone cut. Is this node (still) a subdomain
 			 * below the cut? Then the name is occluded. Unless
-			 * the name contains a SOA, after which we are 
+			 * the name contains a SOA, after which we are
 			 * authoritative again.
 			 *
 			 * FIXME! If there are labels in between the SOA and
@@ -763,7 +769,7 @@ ldns_dnssec_zone_mark_and_get_glue(ldns_dnssec_zone *zone,
  * Marks the names in the zone that are occluded. Those names will be skipped
  * when walking the tree with the ldns_dnssec_name_node_next_nonglue()
  * function. But watch out! Names that are partially occluded (like glue with
- * the same name as the delegation) will not be marked and should specifically 
+ * the same name as the delegation) will not be marked and should specifically
  * be taken into account separately.
  *
  * \param[in] zone the zone in which to mark the names
@@ -965,7 +971,7 @@ ldns_dnssec_zone_create_nsec3s_mkmap(ldns_dnssec_zone *zone,
 			if (hashmap_node == NULL) {
 				return LDNS_STATUS_MEM_ERR;
 			}
-			current_name->hashed_name = 
+			current_name->hashed_name =
 				ldns_dname_label(ldns_rr_owner(nsec_rr), 0);
 
 			if (current_name->hashed_name == NULL) {
@@ -1179,7 +1185,7 @@ ldns_key_list_filter_for_non_dnskey(ldns_key_list *key_list, int flags)
 	ldns_signing_algorithm saw_zsk = 0;
 	ldns_key *key;
 	size_t i;
-	
+
 	if (!ldns_key_list_key_count(key_list))
 		return;
 
@@ -1283,14 +1289,14 @@ ldns_dnssec_zone_create_rrsigs_flg( ldns_dnssec_zone *zone
 				}
 
 				/* only sign non-delegation RRsets */
-				/* (glue should have been marked earlier, 
+				/* (glue should have been marked earlier,
 				 *  except on the delegation points itself) */
 				if (!on_delegation_point ||
-						ldns_rr_list_type(rr_list) 
+						ldns_rr_list_type(rr_list)
 							== LDNS_RR_TYPE_DS ||
-						ldns_rr_list_type(rr_list) 
+						ldns_rr_list_type(rr_list)
 							== LDNS_RR_TYPE_NSEC ||
-						ldns_rr_list_type(rr_list) 
+						ldns_rr_list_type(rr_list)
 							== LDNS_RR_TYPE_NSEC3) {
 					siglist = ldns_sign_public(rr_list, key_list);
 					for (i = 0; i < ldns_rr_list_rr_count(siglist); i++) {
@@ -1582,7 +1588,7 @@ ldns_zone_sign_nsec3(ldns_zone *zone, ldns_key_list *key_list, uint8_t algorithm
 		(void) ldns_dnssec_zone_add_rr(dnssec_zone,
 								 ldns_rr_list_rr(ldns_zone_rrs(zone),
 											  i));
-		ldns_zone_push_rr(signed_zone, 
+		ldns_zone_push_rr(signed_zone,
 					   ldns_rr_clone(ldns_rr_list_rr(ldns_zone_rrs(zone),
 											   i)));
 	}

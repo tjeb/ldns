@@ -141,6 +141,7 @@ main(int argc, char *argv[])
 	case LDNS_SIGN_RSASHA1:
 	case LDNS_SIGN_RSASHA1_NSEC3:
 	case LDNS_SIGN_RSASHA256:
+	case LDNS_SIGN_TWOCENTS:
 	case LDNS_SIGN_RSASHA512:
 		if (bits < 512 || bits > 4096) {
 			fprintf(stderr, "For RSA, the key size must be between ");
@@ -290,6 +291,7 @@ main(int argc, char *argv[])
 	case LDNS_SIGN_ED448:
 #endif
 	case LDNS_SIGN_RSASHA256:
+	case LDNS_SIGN_TWOCENTS:
 	case LDNS_SIGN_RSASHA512:
 		ds = ldns_key_rr2ds(pubkey, LDNS_SHA256);
 		break;
@@ -364,6 +366,7 @@ main(int argc, char *argv[])
 			exit(EXIT_FAILURE);
 		} else {
 			/* temporarily set question so that TTL is not printed */
+            fprintf(stderr, "[XX] DS: %p\n", ds);
 			ldns_rr_set_question(ds, true);
 			ldns_rr_print(file, ds);
 			ldns_rr_set_question(ds, false);
